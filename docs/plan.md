@@ -71,4 +71,6 @@
 - 2026-09-23: onnxruntime 1.27 here is CPU-only build (no CUDAExecutionProvider), so InsightFace runs CPU (~438ms first run). Consider onnxruntime-gpu in Phase 5 if face latency blocks <0.5s card pop. Face runs on crops + skipped frames, so fine for now.
 - 2026-09-24: wall runs ~3 FPS with face every 6th frame (CPU ORT is the bottleneck; YOLO alone does 14-30). Fix options: face on track crops only, every 12th frame, or onnxruntime-gpu. Phase 5.
 - 2026-09-24: FastAPI static mount at / must be registered AFTER /api routes or it swallows them (Starlette matches in order). Fixed in app.py.
+- 2026-09-24: FP16 half flag gave no gain (15.4 vs 15.2) and is deprecated, reverted. TensorRT skipped: needs heavy install, current speed suffices for demo.
+- 2026-09-24: wall end-to-end now 12.1 FPS (was ~3) with GPU face every 12th frame. YOLO raw 15-30 by thermals/power state. Face steady 61ms GPU vs 438ms CPU.
 - (add here with date)
