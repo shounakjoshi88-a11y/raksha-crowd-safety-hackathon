@@ -12,7 +12,7 @@ Today, control rooms watch dozens of CCTV screens by hand. People get missed, cr
 Same idea as advanced camera systems used abroad, but built privacy first: opt in enrollment, blurred stored video, auto deletion, no ID card linkage, full audit log.
 
 ## What works today (tested on our laptop, RTX 4050)
-- Live wall in browser: camera feed with ID boxes, walking trails, zone counts, stay timers. Open `http://localhost:8000/wall.html` after starting the backend. Preview: `docs/wall-preview.png`.
+- Live wall in browser: camera feed with ID boxes, walking trails, zone counts, stay timers. Open `http://localhost:8000/wall.html` after starting the backend..
 - Tracking: YOLOv8s plus ByteTrack, 15 to 30 FPS. ID holds through short blockages (tested: 60 frame blackout, same ID back).
 - Face file: enroll with webcam (`scripts/enroll.py`), live match at 61 ms per face on GPU, card pops with photo, age, stay time. Unknown faces go to one stranger file, no spam.
 - Stampede meter: fired RED (1.2 plus) on dense test input. Alerts go to the wall plus a log file for handover.
