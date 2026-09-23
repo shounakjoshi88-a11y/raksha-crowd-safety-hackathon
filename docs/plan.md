@@ -73,4 +73,5 @@
 - 2026-09-24: FastAPI static mount at / must be registered AFTER /api routes or it swallows them (Starlette matches in order). Fixed in app.py.
 - 2026-09-24: FP16 half flag gave no gain (15.4 vs 15.2) and is deprecated, reverted. TensorRT skipped: needs heavy install, current speed suffices for demo.
 - 2026-09-24: wall end-to-end now 12.1 FPS (was ~3) with GPU face every 12th frame. YOLO raw 15-30 by thermals/power state. Face steady 61ms GPU vs 438ms CPU.
+- 2026-09-24: Chinese-style overlay shipped (`vision/attributes.py` top-color HSV + compass dir, `vision/overlay.py` dark panels, odd/even side split). Verified on station_rush dense frame, matches reference pattern.
 - (add here with date)
