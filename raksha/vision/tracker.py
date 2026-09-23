@@ -3,7 +3,7 @@ from ultralytics import YOLO
 
 
 class PersonTracker:
-    def __init__(self, weights="yolov8s.pt", device=0, tracker="bytetrack.yaml", conf=0.35, imgsz=640):
+    def __init__(self, weights="D:/Q_project/raksha/models/yolov8s.pt", device=0, tracker="bytetrack.yaml", conf=0.35, imgsz=640):
         self.model = YOLO(weights)
         self.device = device
         self.tracker = tracker

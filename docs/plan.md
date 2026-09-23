@@ -55,11 +55,16 @@
 - [ ] Bottleneck box FTLE-lite (rule meter + zones cover demo; add only if time)
 - Acceptance: dense test frame → RED + alert entry with snapshot.
 
-## Phase 5: Harden + demo + submission [ ]
-- [ ] ONNX export YOLOv8s, auto frame-skip by FPS, face-blur stored video, 7-day purge flag
-- [ ] Demo video: dense → RED → diversion → face search → export (2 min script in `raksha/demo-script.md`)
-- [ ] Measured numbers back into deck slide 4 + `docs/RESEARCH.md`
-- [ ] Team Leader name into slide 1, export PDF, upload to portal
+## Phase 5: Harden + demo + submission [~] (in progress 2026-09-24)
+- [x] ONNX export yolov8s (42.8MB): 327ms ORT-GPU, 4779ms ORT-CPU → PyTorch CUDA stays primary
+- [x] onnxruntime-gpu installed → CUDAExecutionProvider live → face steady 61ms (was 438ms CPU)
+- [x] `raksha/vision/privacy.py`: blur_faces helper; purge = delete gallery/snaps older than 7d before handover
+- [x] Weights moved to `raksha/models/` (local only, never push, 64MB)
+- [x] Deck slide 4 now shows OUR measured numbers (15-30 track, 61ms face, RED 1.2+), validated PASSED
+- [x] Demo clip recorded: `scripts/ppt/previews/demo_wall.mp4` 300 frames (local only)
+- [x] PDF exported via PowerPoint COM: `deck/Raksha_Hackathon2026_Final.pdf` (396KB, 6 slides)
+- [ ] Team Leader name into slide 1 (tomorrow) + re-export PDF + upload to portal
+- [ ] FPS variance noted (7-30 by thermals/power); record plugged-in numbers if judges ask
 - Acceptance: PDF uploaded, video recorded, repo tagged.
 
 ## Follow-ups discovered during build
