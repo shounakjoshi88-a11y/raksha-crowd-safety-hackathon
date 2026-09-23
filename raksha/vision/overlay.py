@@ -8,7 +8,7 @@ import cv2
 
 BOX = (0, 229, 204)
 BOX_VEH = (255, 150, 0)
-PART_BOX = (0, 150, 135)
+PART_COLORS = {"head": (0, 255, 255), "torso": (0, 229, 204), "legs": (255, 102, 178)}
 PANEL_BG = (10, 10, 10)
 PANEL_FG = (240, 240, 240)
 FONT = cv2.FONT_HERSHEY_SIMPLEX
@@ -29,7 +29,12 @@ def draw_person(frame, det, trail, parts, zone_line, compact=False):
     H, W = frame.shape[:2]
     for pname, p in parts.items():
         bx1, by1, bx2, by2 = [int(v) for v in p["box"]]
-        cv2.rectangle(frame, (max(0, bx1), max(0, by1)), (min(W, bx2), min(H, by2)), PART_BOX, 1)
+        bx1, by1 = max(0, bx1), max(0, by1)
+        bx2, by2 = min(W, bx2), min(H, by2)
+        pc = PART_COLORS.get(pname, BOX)
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), pc, 2)
+        cv2.putText(frame, pname.upper(), (bx1, max(0, by1 - 4)),
+                    FONT, 0.4, pc, 1, cv2.LINE_AA)
     rows = [("t", f"ID {det['id']}")]
     if "torso" in parts:
         t = parts["torso"]
