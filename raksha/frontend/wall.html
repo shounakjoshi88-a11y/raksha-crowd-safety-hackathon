@@ -7,61 +7,83 @@
 <style>
   * { box-sizing: border-box; margin: 0; }
   body { background: #0b121e; color: #fff; font-family: Calibri, Arial, sans-serif; }
-  header { padding: 12px 20px; border-bottom: 1px solid #223; display: flex; gap: 16px; align-items: baseline; }
-  header h1 { font-size: 22px; } header h1 span { color: #00e5cc; }
-  header .meta { color: #a8b3c7; font-size: 13px; }
-  main { display: grid; grid-template-columns: 1fr 340px; gap: 12px; padding: 12px 20px; }
-  .wall img { width: 100%; border-radius: 8px; background: #000; }
-  .panel h2 { font-size: 14px; color: #00e5cc; margin: 12px 0 6px; letter-spacing: 1px; }
+  header { padding: 12px 24px; border-bottom: 1px solid #223; display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 24px; letter-spacing: 1px; } header h1 span { color: #00e5cc; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #666; }
+  .dot.on { background: #00e5cc; box-shadow: 0 0 8px #00e5cc; }
+  .dot.warn { background: #e5b800; box-shadow: 0 0 8px #e5b800; }
+  .dot.bad { background: #ff3b5c; box-shadow: 0 0 8px #ff3b5c; }
+  header .meta { color: #a8b3c7; font-size: 14px; margin-left: auto; }
+  main { display: grid; grid-template-columns: 1fr 360px; gap: 14px; padding: 14px 24px; max-width: 1600px; margin: 0 auto; }
+  .wall { position: relative; }
+  .wall img { width: 100%; border-radius: 10px; background: #000; display: block; }
+  .wall .live { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.65); padding: 4px 12px; border-radius: 20px; font-size: 14px; }
+  .wall .live b { color: #ff3b5c; }
+  .panel h2 { font-size: 13px; color: #00e5cc; margin: 14px 0 8px; letter-spacing: 2px; }
   .panel h2:first-child { margin-top: 0; }
-  .card { background: #142236; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
+  .card { background: #142236; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; font-size: 15px; border-left: 5px solid #00e5cc; }
   .card b { color: #cadcfc; }
-  .risk-red { border-left: 5px solid #ff3b5c; } .risk-yellow { border-left: 5px solid #e5b800; } .risk-green { border-left: 5px solid #00e5cc; }
-  .alert { border-left: 5px solid #ff3b5c; }
-  .muted { color: #a8b3c7; font-size: 13px; }
-  #meter { height: 14px; border-radius: 7px; background: #223; overflow: hidden; margin-top: 6px; }
-  #meter > div { height: 100%; width: 0%; background: #00e5cc; }
+  .card .muted, .muted { color: #a8b3c7; font-size: 13px; }
+  .zc-red { border-left-color: #ff3b5c; } .zc-yellow { border-left-color: #e5b800; }
+  .alert { border-left-color: #ff3b5c; }
+  .dossier { display: flex; gap: 10px; align-items: center; }
+  .dossier img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: #000; }
+  #meter { height: 18px; border-radius: 9px; background: #223; overflow: hidden; margin-top: 8px; }
+  #meter > div { height: 100%; width: 0%; background: #00e5cc; transition: width .5s; }
+  .bignum { font-size: 30px; font-weight: bold; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <header>
+  <div class="dot" id="dot"></div>
   <h1>RAKSHA <span>Command Center</span></h1>
   <div class="meta" id="topmeta">connecting...</div>
 </header>
 <main>
-  <div class="wall"><img src="/stream.mjpeg" alt="live wall"></div>
+  <div class="wall">
+    <img src="/stream.mjpeg" alt="live wall">
+    <div class="live"><b>&#9679; LIVE</b> <span id="cammeta"></span></div>
+  </div>
   <div class="panel">
-    <h2>STAMPEDE METER</h2>
-    <div class="card" id="risk"><b>--</b><div id="meter"><div></div></div><div class="muted" id="risksub"></div></div>
+    <h2>STAMPEDE RISK</h2>
+    <div class="card" id="risk"><span class="bignum" id="risknum">--</span><div id="meter"><div></div></div><div class="muted" id="risksub"></div></div>
     <h2>ZONES</h2><div id="zones"></div>
-    <h2>DOSSIERS</h2><div id="dossiers"><div class="card muted">no faces yet (enroll via scripts/enroll.py)</div></div>
-    <h2>ALERTS</h2><div id="alerts"><div class="card muted">all quiet</div></div>
+    <h2>PEOPLE ON FILE</h2><div id="dossiers"></div>
+    <h2>ALERTS</h2><div id="alerts"></div>
   </div>
 </main>
 <script>
+function dwellMax(z) { const v = Object.values(z.dwell_s || {}); return v.length ? Math.max(...v).toFixed(0) : 0; }
 async function tick() {
   try {
     const s = await (await fetch('/api/state')).json();
-    document.getElementById('topmeta').textContent =
-      `${s.fps} FPS | ${s.dets.length} tracked | face ${s.face_on ? 'ON' : 'OFF'}`;
     const b = s.brain || {};
+    const dot = document.getElementById('dot');
+    dot.className = 'dot ' + (b.level === 'red' ? 'bad' : b.level === 'yellow' ? 'warn' : 'on');
+    document.getElementById('topmeta').textContent = `${s.fps} FPS | ${s.dets.length} tracked | face ${s.face_on ? 'ON' : 'OFF'}`;
+    document.getElementById('cammeta').textContent = ` ${s.dets.length} persons`;
     const rc = document.getElementById('risk');
     rc.className = 'card risk-' + (b.level || 'green');
-    rc.querySelector('b').textContent = `RISK ${b.risk ?? '--'} (${(b.level || '--').toUpperCase()})`;
-    rc.querySelector('#meter > div').style.width = Math.min(100, (b.risk || 0) * 100) + '%';
-    rc.querySelector('#meter > div').style.background = b.level === 'red' ? '#ff3b5c' : b.level === 'yellow' ? '#e5b800' : '#00e5cc';
-    document.getElementById('risksub').textContent =
-      `density ${b.density ?? '--'}/m2 | still ${b.stillness ?? '--'} | counterflow ${b.counterflow ?? '--'}`;
-    document.getElementById('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) =>
-      `<div class="card"><b>${n}</b>: ${z.count} people | max dwell ${Math.max(0, ...Object.values(z.dwell_s || {x:0})).toFixed(0)}s</div>`).join('') || '<div class="card muted">--</div>';
+    document.getElementById('risknum').textContent = `${b.risk ?? '--'} ${(b.level || '').toUpperCase()}`;
+    document.getElementById('risknum').style.color = b.level === 'red' ? '#ff3b5c' : b.level === 'yellow' ? '#e5b800' : '#00e5cc';
+    const bar = rc.querySelector('#meter > div');
+    bar.style.width = Math.min(100, (b.risk || 0) * 100) + '%';
+    bar.style.background = b.level === 'red' ? '#ff3b5c' : b.level === 'yellow' ? '#e5b800' : '#00e5cc';
+    document.getElementById('risksub').textContent = `density ${b.density ?? '--'}/m2 | still ${b.stillness ?? '--'} | counterflow ${b.counterflow ?? '--'}`;
+    document.getElementById('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
+      const c = z.count >= 10 ? 'zc-red' : z.count >= 5 ? 'zc-yellow' : '';
+      return `<div class="card ${c}"><b>${n}</b>: ${z.count} people <span class="muted">| longest stay ${dwellMax(z)}s</span></div>`;
+    }).join('') || '<div class="card muted">--</div>';
     const ds = Object.values(s.dossiers || {});
-    document.getElementById('dossiers').innerHTML = ds.length ? ds.map(d =>
-      `<div class="card"><b>${d.name}</b> <span class="muted">${d.gid}</span><br>dwell ${d.dwell_s}s | snaps ${d.snaps} | trail ${d.trail_pts}</div>`).join('')
-      : '<div class="card muted">no faces yet (enroll via scripts/enroll.py)</div>';
+    document.getElementById('dossiers').innerHTML = ds.length ? ds.map(d => {
+      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="">` : '';
+      return `<div class="card dossier">${img}<div><b>${d.name}</b> <span class="muted">${d.gid}</span><br>stay ${d.dwell_s}s | photos ${d.snaps} | path ${d.trail_pts} pts</div></div>`;
+    }).join('') : '<div class="card muted">No faces yet. Enroll with scripts/enroll.py</div>';
     document.getElementById('alerts').innerHTML = (s.alerts || []).slice().reverse().map(al =>
-      `<div class="card alert"><b>${al.level.toUpperCase()}</b> risk ${al.risk} density ${al.density}<br><span class="muted">${new Date(al.time * 1000).toLocaleTimeString()}</span></div>`).join('')
-      || '<div class="card muted">all quiet</div>';
-  } catch (e) { /* backend warming up */ }
+      `<div class="card alert"><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density}<br><span class="muted">${new Date(al.time * 1000).toLocaleTimeString()}</span></div>`).join('')
+      || '<div class="card muted">All quiet.</div>';
+  } catch (e) { /* warming up */ }
   setTimeout(tick, 1000);
 }
 tick();

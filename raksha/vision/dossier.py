@@ -28,6 +28,8 @@ class Dossier:
         return self.last_seen - self.first_seen
 
     def card(self):
+        import os as _os
         return {"gid": self.gid, "name": self.name, "dwell_s": round(self.dwell_s, 1),
                 "tracks": sorted(self.track_ids), "snaps": len(self.snapshots),
+                "snap_urls": ["/snaps/" + _os.path.basename(s) for s in self.snapshots],
                 "trail_pts": len(self.trail), "flags": self.flags}

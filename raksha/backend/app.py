@@ -114,6 +114,7 @@ def stream():
     return StreamingResponse(gen(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 
+app.mount("/snaps", StaticFiles(directory=SNAP_DIR), name="snaps")
 app.mount("/", StaticFiles(directory="D:/Q_project/raksha/frontend", html=True), name="static")
 
 
