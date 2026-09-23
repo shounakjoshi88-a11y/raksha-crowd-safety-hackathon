@@ -38,11 +38,9 @@ We ran the live tracker end to end on real crowd clips, including Indian railway
 
 Crowds plus vehicles are tracked together. Every person gets head, torso and legs boxes, each part measured for its real color with a swatch plus hex in the panel. Vehicles get blue boxes with type plus direction panels. Number plates are not read yet, that is listed below.
 
-<video src="https://github.com/shounakjoshi88-a11y/raksha-crowd-safety-hackathon/raw/main/docs/demo/tracking_demo.mp4" controls width="100%">
-  <a href="https://github.com/shounakjoshi88-a11y/raksha-crowd-safety-hackathon/blob/main/docs/demo/tracking_demo.mp4">Watch: live tracking on street traffic</a>
-</video>
+![Live tracking demo](docs/demo/tracking_demo.gif)
 
-*Watch: live tracking on street traffic. Every box carries its file panel. If the player above does not load, use the link inside it.*
+*Watch: live tracking on street traffic. Every box carries its file panel. Full quality video: [tracking_demo.mp4](docs/demo/tracking_demo.mp4).*
 
 ![Indian station tracking](docs/demo/india_station.jpg)
 *Indian railway station: part boxes on every person, true colors (white shirts read white, red saris read red).*
