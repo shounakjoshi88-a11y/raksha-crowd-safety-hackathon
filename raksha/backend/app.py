@@ -18,8 +18,8 @@ from raksha.vision.faces import FaceEngine
 from raksha.vision.gallery import Gallery
 from raksha.vision.dossier import Dossier
 from raksha.vision.brain import CrowdBrain
-from raksha.vision.attributes import top_color, bottom_color, direction
-from raksha.vision.overlay import draw_track
+from raksha.vision.attributes import top_color, bottom_color, direction, parts_info
+from raksha.vision.overlay import draw_track, draw_person
 
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
@@ -43,7 +43,7 @@ def vision_loop(src):
     eng = FaceEngine() if face_on else None
     brain = CrowdBrain()
     trails, votes, dossiers = {}, deque(maxlen=3), {}
-    risk_hist, captures = deque(maxlen=60), deque(maxlen=20)
+    risk_hist, captures, pcache = deque(maxlen=60), deque(maxlen=20), {}
     t0, n = time.time(), 0
     fps = 0.0
     while True:
@@ -69,9 +69,13 @@ def vision_loop(src):
             tr = trails.setdefault(d["id"], deque(maxlen=30))
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
             dlbl, spd = direction(tr)
-            extra = [f"{top_color(f, d['xyxy'])}/{bottom_color(f, d['xyxy'])}",
-                     f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
-            draw_track(f, d, tr, extra, compact=len(dets) > 12)
+            cc = pcache.get(d["id"])
+            if cc is None or n - cc[0] >= 15:
+                cc = (n, parts_info(f, d["xyxy"]))
+                pcache[d["id"]] = cc
+            draw_person(f, d, tr, cc[1],
+                        f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}",
+                        compact=len(dets) > 12)
         for d in vehicles:
             if d["id"] is None:
                 continue

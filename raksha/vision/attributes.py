@@ -1,58 +1,104 @@
-"""Per-track attributes, Chinese-VMS style: top/bottom clothing color, direction, speed.
+"""Part-based body attributes, real measured color (no hardcoded guesses).
 
-Color lessons from our own research notes (Dahua-style top/bottom split):
-central-region sampling only (full-width bands catch sky/arms), achromatic
-check before hue, mean over median for washed daylight cloth.
+Research grounding: rigid head/torso/legs split is the efficient classic
+(Zhu 15-patch, Feris body parsing); dominant color via k-means on small
+central crops (algolia/color-extractor pipeline: downscale, center crop,
+cluster, largest wins). Colors recomputed at most every 15 frames per
+track and cached, because clothing does not change frame to frame.
 """
 import cv2
 import numpy as np
 
+PARTS = (("head", 0.00, 0.20), ("torso", 0.20, 0.58), ("legs", 0.58, 1.00))
 
-def _classify(hsv):
-    mh, ms, mv = [float(np.mean(hsv[:, :, i])) for i in range(3)]
-    if mv < 60:
+
+def part_boxes(xyxy):
+    """Split person box into head/torso/legs (x1, y1, x2, y2) dict."""
+    x1, y1, x2, y2 = [int(v) for v in xyxy]
+    h = y2 - y1
+    if h <= 0:
+        return {}
+    return {name: (x1, y1 + int(h * a), x2, y1 + int(h * b)) for name, a, b in PARTS}
+
+
+def dominant_bgr(crop):
+    """Largest k-means cluster (k=2) on a small central crop. Returns (B, G, R)."""
+    h, w = crop.shape[:2]
+    cx0, cx1 = int(w * 0.25), int(w * 0.75)
+    cy0, cy1 = int(h * 0.25), int(h * 0.75)
+    small = cv2.resize(crop[cy0:cy1, cx0:cx1], (40, 40), interpolation=cv2.INTER_AREA)
+    data = small.reshape(-1, 3).astype(np.float32)
+    _, _, centers = cv2.kmeans(data, 2, None,
+                               (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 8, 1.0),
+                               2, cv2.KMEANS_PP_CENTERS)
+    # largest cluster wins
+    d = ((data[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2).argmin(axis=1)
+    best = int(np.bincount(d).argmax())
+    return tuple(int(v) for v in centers[best][::-1])  # BGR ints
+
+
+def name_of_bgr(bgr):
+    """Nearest of 11 basic colors in HSV space (fast, no tables)."""
+    arr = np.uint8([[list(bgr)]])
+    h, s, v = [float(x) for x in cv2.cvtColor(arr, cv2.COLOR_BGR2HSV)[0][0]]
+    if v < 60:
         return "black"
-    if ms < 45:
-        return "white" if mv > 140 else "gray"
-    if mh < 10 or mh > 160:
+    if s < 45:
+        return "white" if v > 140 else "gray"
+    if h < 10 or h > 160:
         return "red"
-    if mh < 25:
+    if h < 25:
         return "orange"
-    if mh < 38:
+    if h < 38:
         return "yellow"
-    if mh < 78:
+    if h < 78:
         return "green"
-    if mh < 100:
+    if h < 100:
         return "cyan"
-    if mh < 132:
+    if h < 132:
         return "blue"
     return "purple"
 
 
-def _band(frame, xyxy, y0, y1):
-    x1, y1_, x2, y2 = [int(v) for v in xyxy]
-    h, w = frame.shape[:2]
-    x1, y1_ = max(0, x1), max(0, y1_)
-    x2, y2 = min(w, x2), min(h, y2)
-    bh = y2 - y1_
-    if bh < 20 or x2 - x1 < 10:
-        return None
-    cx0 = x1 + int((x2 - x1) * 0.25)
-    cx1 = x2 - int((x2 - x1) * 0.25)
-    crop = frame[y1_ + int(bh * y0):y1_ + int(bh * y1), cx0:cx1]
-    if crop.size == 0:
-        return None
-    return cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+def hex_of_bgr(bgr):
+    r, g, b = int(bgr[2]), int(bgr[1]), int(bgr[0])
+    return "#%02X%02X%02X" % (r, g, b)
+
+
+def part_colors(frame, xyxy):
+    """Measured color per body part: {part: (bgr, name, hex)}. Safe on tiny boxes."""
+    H, W = frame.shape[:2]
+    out = {}
+    for name, (x1, y1, x2, y2) in part_boxes(xyxy).items():
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(W, x2), min(H, y2)
+        if x2 - x1 < 8 or y2 - y1 < 8:
+            continue
+        bgr = dominant_bgr(frame[y1:y2, x1:x2])
+        out[name] = (bgr, name_of_bgr(bgr), hex_of_bgr(bgr))
+    return out
+
+
+def parts_info(frame, xyxy):
+    """Merged per-part record for overlay: {part: {box, bgr, name, hex}}."""
+    boxes = part_boxes(xyxy)
+    cols = part_colors(frame, xyxy)
+    out = {}
+    for name, box in boxes.items():
+        if name in cols:
+            bgr, nm, hx = cols[name]
+            out[name] = {"box": box, "bgr": bgr, "name": nm, "hex": hx}
+    return out
 
 
 def top_color(frame, xyxy):
-    hsv = _band(frame, xyxy, 0.25, 0.55)
-    return _classify(hsv) if hsv is not None else "unknown"
+    pc = part_colors(frame, xyxy)
+    return pc["torso"][1] if "torso" in pc else "unknown"
 
 
 def bottom_color(frame, xyxy):
-    hsv = _band(frame, xyxy, 0.60, 0.92)
-    return _classify(hsv) if hsv is not None else "unknown"
+    pc = part_colors(frame, xyxy)
+    return pc["legs"][1] if "legs" in pc else "unknown"
 
 
 def direction(trail, fps=15.0):

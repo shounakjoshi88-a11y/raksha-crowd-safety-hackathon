@@ -4,8 +4,8 @@ from collections import deque, Counter
 import cv2
 sys.path.insert(0, "D:/Q_project")
 from raksha.vision.tracker import PersonTracker
-from raksha.vision.overlay import draw_track
-from raksha.vision.attributes import direction, top_color
+from raksha.vision.overlay import draw_track, draw_person
+from raksha.vision.attributes import direction, top_color, parts_info
 
 cap = cv2.VideoCapture("D:/Q_project/assets/clips/traffic.mp4")
 trk = PersonTracker()
@@ -33,7 +33,7 @@ while True:
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
             if d["cls"] == 0:
                 dl, _ = direction(tr)
-                draw_track(f, d, tr, ["top " + top_color(f, d["xyxy"]), dl], compact=cmpct)
+                draw_person(f, d, tr, parts_info(f, d["xyxy"]), dl, compact=cmpct)
             else:
                 dl, sp = direction(tr)
                 draw_track(f, d, tr, [dl + " " + str(sp) + "px/s"], compact=cmpct)

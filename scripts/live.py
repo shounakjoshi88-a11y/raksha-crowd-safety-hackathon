@@ -7,8 +7,8 @@ sys.path.insert(0, "D:/Q_project")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 from raksha.vision.zones import ZoneCounter
-from raksha.vision.attributes import top_color, bottom_color, direction
-from raksha.vision.overlay import draw_track
+from raksha.vision.attributes import top_color, bottom_color, direction, parts_info
+from raksha.vision.overlay import draw_track, draw_person
 
 ap = argparse.ArgumentParser()
 ap.add_argument("source", nargs="?", default="0")
@@ -26,6 +26,7 @@ trk = PersonTracker()
 zones = ZoneCounter({"Gate": [(0, 0), (0.5, 0), (0.5, 1), (0, 1)],
                      "Stage": [(0.5, 0), (1, 0), (1, 1), (0.5, 1)]})
 trails, writer = {}, None
+pcache = {}
 t0, frames = time.time(), 0
 fps = 0.0
 
@@ -51,9 +52,13 @@ while True:
         tr = trails.setdefault(d["id"], deque(maxlen=30))
         tr.append((cx, cy))
         dlbl, spd = direction(tr)
-        extra = [f"{top_color(f, d['xyxy'])}/{bottom_color(f, d['xyxy'])}",
-                 f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
-        draw_track(f, d, tr, extra, compact=len(dets) > 12)
+        cc = pcache.get(d["id"])
+        if cc is None or frames - cc[0] >= 15:
+            cc = (frames, parts_info(f, d["xyxy"]))
+            pcache[d["id"]] = cc
+        draw_person(f, d, tr, cc[1],
+                    f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}",
+                    compact=len(dets) > 12)
     for d in vehicles:
         if d["id"] is None:
             continue
