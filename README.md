@@ -24,6 +24,8 @@ Problem #2: Improving Safety at Large Public Events. Build a platform that monit
 | `RESEARCH.md` | Build bible: best GitHub repos to copy from, papers, datasets, settings that work, build order | Builders (vision + backend) |
 | `CHINA_DEEP_DIVE.md` | Deep notes on how large scale camera systems work behind the scenes: vendors, standards, algorithms, hardware, real deployments | Builders who want full context |
 | `.agents/skills/` | 8 installed AI skills with all their files: slide making, UI design, computer vision, debugging, brainstorming | Everyone, these make the AI agent much better |
+| `raksha/` | Working prototype code: live vision (`vision/`), early mock API + dashboard (`backend/`, `frontend/`), run notes, demo script | Builders |
+| `plan.md` | Living build tracker with checkboxes, updated as phases complete | Everyone, check this to see what is done and what is left |
 
 ## Skills folder, simple explanation
 The `.agents/skills/` folder teaches our AI assistant how to do expert work:

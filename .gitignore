@@ -6,8 +6,7 @@ package-lock.json
 thumbs_*/
 slide-*.jpg
 *.pdf
-# local prototype + research clones (re-clone per RESEARCH.md)
-raksha/
+# local research clones (re-clone per RESEARCH.md)
 research/
 # scratch builders
 make_ppt.py
