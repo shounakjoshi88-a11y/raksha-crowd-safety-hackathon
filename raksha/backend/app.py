@@ -18,7 +18,7 @@ from raksha.vision.faces import FaceEngine
 from raksha.vision.gallery import Gallery
 from raksha.vision.dossier import Dossier
 from raksha.vision.brain import CrowdBrain
-from raksha.vision.attributes import top_color, direction
+from raksha.vision.attributes import top_color, bottom_color, direction
 from raksha.vision.overlay import draw_track
 
 SNAP_DIR = "D:/Q_project/gallery/snaps"
@@ -69,7 +69,7 @@ def vision_loop(src):
             tr = trails.setdefault(d["id"], deque(maxlen=30))
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
             dlbl, spd = direction(tr)
-            extra = [f"top {top_color(f, d['xyxy'])}",
+            extra = [f"{top_color(f, d['xyxy'])}/{bottom_color(f, d['xyxy'])}",
                      f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
             draw_track(f, d, tr, extra, compact=len(dets) > 12)
         for d in vehicles:

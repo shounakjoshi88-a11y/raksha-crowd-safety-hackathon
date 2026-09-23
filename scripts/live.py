@@ -7,7 +7,7 @@ sys.path.insert(0, "D:/Q_project")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 from raksha.vision.zones import ZoneCounter
-from raksha.vision.attributes import top_color, direction
+from raksha.vision.attributes import top_color, bottom_color, direction
 from raksha.vision.overlay import draw_track
 
 ap = argparse.ArgumentParser()
@@ -51,7 +51,7 @@ while True:
         tr = trails.setdefault(d["id"], deque(maxlen=30))
         tr.append((cx, cy))
         dlbl, spd = direction(tr)
-        extra = [f"top {top_color(f, d['xyxy'])}",
+        extra = [f"{top_color(f, d['xyxy'])}/{bottom_color(f, d['xyxy'])}",
                  f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
         draw_track(f, d, tr, extra, compact=len(dets) > 12)
     for d in vehicles:

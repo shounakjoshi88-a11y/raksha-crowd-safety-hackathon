@@ -41,11 +41,24 @@ def draw_track(frame, det, trail, extra_lines=None, box_color=None, full_panel_h
     lines = [f"{det.get('label', 'ID')} {det['id']}"]
     if extra_lines:
         lines += extra_lines[:1] if compact else extra_lines
-    try:
-        side = "left" if int(det["id"]) % 2 else "right"
-    except (TypeError, ValueError):
-        side = "right"
-    if side == "left":
-        draw_panel(frame, x1, y1, lines, side="left")
-    else:
-        draw_panel(frame, x2 + 6, y1, lines)
+    fs, th, pad, lh = 0.45, 1, 5, 15
+    widths = [cv2.getTextSize(t, FONT, fs, th)[0][0] for t in lines]
+    bw, bh = max(widths) + pad * 2, len(lines) * lh + pad * 2
+    H, W = frame.shape[:2]
+    # anchor above the box so bodies stay visible; fall back to a free side
+    px, py = x1, y1 - bh - 6
+    if py < 0:
+        try:
+            side = "left" if int(det["id"]) % 2 else "right"
+        except (TypeError, ValueError):
+            side = "right"
+        px = x1 - bw - 8 if side == "left" else x2 + 6
+        py = y1
+    if px + bw > W:
+        px = max(0, W - bw)
+    if px < 0:
+        px = 0
+    py = max(0, min(py, H - bh))
+    cv2.rectangle(frame, (px, py), (px + bw, py + bh), PANEL_BG, -1)
+    for i, t in enumerate(lines):
+        cv2.putText(frame, t, (px + pad, py + pad + (i + 1) * lh - 4), FONT, fs, PANEL_FG, th, cv2.LINE_AA)
