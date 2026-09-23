@@ -19,3 +19,6 @@ export_thumbs.py
 export_final.py
 badchars.txt
 _publish/
+
+# submission PDF is kept
+!deck/*.pdf
