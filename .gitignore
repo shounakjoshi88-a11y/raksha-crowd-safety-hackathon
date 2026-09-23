@@ -1,0 +1,21 @@
+# build outputs
+*.pyc
+__pycache__/
+node_modules/
+package-lock.json
+thumbs_*/
+slide-*.jpg
+*.pdf
+# local prototype + research clones (re-clone per RESEARCH.md)
+raksha/
+research/
+# scratch builders
+make_ppt.py
+make_ppt_v2.js
+fill_template.py
+rebuild_clean.py
+clean_fill.py
+inspect_layout.py
+export_thumbs.py
+export_final.py
+badchars.txt
