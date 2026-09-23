@@ -5,85 +5,201 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Raksha Command Center</title>
 <style>
+  :root {
+    --bg: #020617; --primary: #0F172A; --secondary: #1E293B; --card: #0E1223;
+    --muted: #1A1E2F; --muted-fg: #94A3B8; --fg: #F8FAFC; --border: #334155;
+    --accent: #22C55E; --warn: #E5B800; --danger: #EF4444; --info: #38BDF8;
+    --radius: 10px; --gap: 16px;
+    --font-ui: "Fira Sans", "Segoe UI", Calibri, Arial, sans-serif;
+    --font-data: "Fira Code", "Cascadia Mono", Consolas, monospace;
+  }
   * { box-sizing: border-box; margin: 0; }
-  body { background: #0b121e; color: #fff; font-family: Calibri, Arial, sans-serif; }
-  header { padding: 12px 24px; border-bottom: 1px solid #223; display: flex; align-items: center; gap: 14px; }
-  header h1 { font-size: 24px; letter-spacing: 1px; } header h1 span { color: #00e5cc; }
-  .dot { width: 12px; height: 12px; border-radius: 50%; background: #666; }
-  .dot.on { background: #00e5cc; box-shadow: 0 0 8px #00e5cc; }
-  .dot.warn { background: #e5b800; box-shadow: 0 0 8px #e5b800; }
-  .dot.bad { background: #ff3b5c; box-shadow: 0 0 8px #ff3b5c; }
-  header .meta { color: #a8b3c7; font-size: 14px; margin-left: auto; }
-  main { display: grid; grid-template-columns: 1fr 360px; gap: 14px; padding: 14px 24px; max-width: 1600px; margin: 0 auto; }
-  .wall { position: relative; }
-  .wall img { width: 100%; border-radius: 10px; background: #000; display: block; }
-  .wall .live { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.65); padding: 4px 12px; border-radius: 20px; font-size: 14px; }
-  .wall .live b { color: #ff3b5c; }
-  .panel h2 { font-size: 13px; color: #00e5cc; margin: 14px 0 8px; letter-spacing: 2px; }
-  .panel h2:first-child { margin-top: 0; }
-  .card { background: #142236; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; font-size: 15px; border-left: 5px solid #00e5cc; }
-  .card b { color: #cadcfc; }
-  .card .muted, .muted { color: #a8b3c7; font-size: 13px; }
-  .zc-red { border-left-color: #ff3b5c; } .zc-yellow { border-left-color: #e5b800; }
-  .alert { border-left-color: #ff3b5c; }
-  .dossier { display: flex; gap: 10px; align-items: center; }
-  .dossier img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: #000; }
-  #meter { height: 18px; border-radius: 9px; background: #223; overflow: hidden; margin-top: 8px; }
-  #meter > div { height: 100%; width: 0%; background: #00e5cc; transition: width .5s; }
-  .bignum { font-size: 30px; font-weight: bold; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+  /* top command bar */
+  .cmdbar { display: flex; align-items: center; gap: 16px; padding: 10px 24px;
+    background: var(--primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: 1px; }
+  .brand svg { width: 26px; height: 26px; }
+  .brand span { color: var(--accent); font-weight: 300; }
+  .status-pill { display: flex; align-items: center; gap: 8px; background: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600; }
+  .status-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted-fg); }
+  .status-pill.ok .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .status-pill.warn .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .status-pill.bad .dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .cmdbar .spacer { flex: 1; }
+  .metric { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted-fg); }
+  .metric b { color: var(--fg); font-weight: 600; }
+  /* alert banner strip */
+  .banner { display: none; align-items: center; gap: 12px; padding: 10px 24px; font-size: 15px; font-weight: 600; }
+  .banner.show { display: flex; }
+  .banner.red { background: #3d0a12; border-bottom: 2px solid var(--danger); }
+  .banner.yellow { background: #38300a; border-bottom: 2px solid var(--warn); }
+  .banner svg { width: 22px; height: 22px; flex-shrink: 0; }
+  /* main grid */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gap);
+    padding: var(--gap) 24px; max-width: 1720px; margin: 0 auto; }
+  .videoframe { position: relative; background: #000; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .videoframe img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+  .videoframe .live-tag { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px;
+    background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .live-tag .rec { width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
+  .videoframe .legend { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 12px;
+    background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; font-size: 12px; color: var(--muted-fg); }
+  .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  /* rail */
+  .rail h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 18px 0 8px; font-weight: 600; }
+  .rail h2:first-child { margin-top: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+  /* risk gauge */
+  .gauge-top { display: flex; align-items: baseline; justify-content: space-between; }
+  .gauge-num { font-family: var(--font-data); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gauge-level { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: 1px;
+    padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border); }
+  .gauge-level svg { width: 14px; height: 14px; }
+  .lvl-green { color: var(--accent); border-color: var(--accent); } .lvl-yellow { color: var(--warn); border-color: var(--warn); } .lvl-red { color: var(--danger); border-color: var(--danger); }
+  .bar { height: 12px; border-radius: 6px; background: var(--muted); overflow: hidden; margin-top: 10px; }
+  .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width .5s ease; }
+  .gauge-sub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .gauge-sub div { background: var(--muted); border-radius: 6px; padding: 6px 8px; text-align: center; }
+  .gauge-sub b { display: block; font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; }
+  .gauge-sub span { font-size: 11px; color: var(--muted-fg); letter-spacing: .5px; }
+  /* zones */
+  .zone { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border-left: 4px solid var(--accent); }
+  .zone.warn { border-left-color: var(--warn); } .zone.bad { border-left-color: var(--danger); }
+  .zone .zname { font-weight: 600; }
+  .zone .zcount { font-family: var(--font-data); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; grid-row: span 2; }
+  .zone .zsub { font-size: 12px; color: var(--muted-fg); }
+  .zone .zbar { grid-column: 1 / -1; height: 6px; background: var(--muted); border-radius: 3px; overflow: hidden; }
+  .zone .zbar > div { height: 100%; background: var(--info); }
+  /* dossiers */
+  .person { display: flex; gap: 12px; align-items: center; }
+  .person img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #000; border: 1px solid var(--border); flex-shrink: 0; }
+  .person .pname { font-weight: 700; font-size: 16px; }
+  .person .pmeta { display: grid; grid-template-columns: repeat(3, auto); gap: 2px 14px; font-size: 12px; color: var(--muted-fg); margin-top: 4px; justify-content: start; }
+  .person .pmeta b { color: var(--fg); font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+  .empty { border: 1px dashed var(--border); border-radius: var(--radius); padding: 14px; color: var(--muted-fg); font-size: 13px; }
+  .empty b { color: var(--fg); }
+  /* alerts */
+  .alert-item { display: flex; gap: 10px; align-items: flex-start; border-left: 4px solid var(--danger); }
+  .alert-item.yellow { border-left-color: var(--warn); }
+  .alert-item svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+  .alert-item time { font-size: 12px; color: var(--muted-fg); font-family: var(--font-data); }
+  .conn-err { background: #3d0a12; border: 1px solid var(--danger); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; }
+  footer { padding: 10px 24px 20px; color: var(--muted-fg); font-size: 12px; max-width: 1720px; margin: 0 auto; }
+  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+  @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
 </style>
 </head>
 <body>
-<header>
-  <div class="dot" id="dot"></div>
-  <h1>RAKSHA <span>Command Center</span></h1>
-  <div class="meta" id="topmeta">connecting...</div>
+<header class="cmdbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+    RAKSHA <span>Command Center</span>
+  </div>
+  <div class="status-pill ok" id="pill"><span class="dot"></span><span id="pilltxt">NOMINAL</span></div>
+  <div class="spacer"></div>
+  <div class="metric">FPS <b id="mFps">--</b></div>
+  <div class="metric">TRACKED <b id="mTrk">--</b></div>
+  <div class="metric">FACE <b id="mFace">--</b></div>
+  <div class="metric" id="clock">--:--:--</div>
 </header>
-<main>
-  <div class="wall">
-    <img src="/stream.mjpeg" alt="live wall">
-    <div class="live"><b>&#9679; LIVE</b> <span id="cammeta"></span></div>
-  </div>
-  <div class="panel">
+<div class="banner" id="banner" role="alert">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>
+  <span id="bannertxt"></span>
+</div>
+<main class="layout">
+  <section class="videoframe" aria-label="Live camera wall">
+    <img src="/stream.mjpeg" alt="Live tracked camera feed">
+    <div class="live-tag"><span class="rec"></span>LIVE <span id="cammeta" class="metric"></span></div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:#00E5CC"></i>track ID</span>
+      <span><i style="background:#FF3B5C"></i>trail</span>
+      <span><i style="background:#FFC800"></i>face file</span>
+    </div>
+  </section>
+  <aside class="rail">
     <h2>STAMPEDE RISK</h2>
-    <div class="card" id="risk"><span class="bignum" id="risknum">--</span><div id="meter"><div></div></div><div class="muted" id="risksub"></div></div>
-    <h2>ZONES</h2><div id="zones"></div>
-    <h2>PEOPLE ON FILE</h2><div id="dossiers"></div>
-    <h2>ALERTS</h2><div id="alerts"></div>
-  </div>
+    <div class="card">
+      <div class="gauge-top">
+        <span class="gauge-num" id="risknum">--</span>
+        <span class="gauge-level lvl-green" id="risklvl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+          <span id="risklvltxt">GREEN</span></span>
+      </div>
+      <div class="bar"><div id="riskbar"></div></div>
+      <div class="gauge-sub">
+        <div><b id="gDen">--</b><span>DENSITY /m2</span></div>
+        <div><b id="gStill">--</b><span>STILLNESS</span></div>
+        <div><b id="gCf">--</b><span>COUNTERFLOW</span></div>
+      </div>
+    </div>
+    <h2>ZONES</h2>
+    <div id="zones"></div>
+    <h2>PEOPLE ON FILE</h2>
+    <div id="dossiers" aria-live="polite"></div>
+    <h2>ALERTS</h2>
+    <div id="alerts" aria-live="polite"></div>
+  </aside>
 </main>
+<footer>Raksha demo build. Faces stay on this machine. Snapshots auto purge after 7 days. No ID linkage.</footer>
 <script>
-function dwellMax(z) { const v = Object.values(z.dwell_s || {}); return v.length ? Math.max(...v).toFixed(0) : 0; }
+const $ = id => document.getElementById(id);
+function clock() { $('clock').textContent = new Date().toLocaleTimeString(); }
+setInterval(clock, 1000); clock();
+let fails = 0;
 async function tick() {
   try {
     const s = await (await fetch('/api/state')).json();
+    fails = 0;
     const b = s.brain || {};
-    const dot = document.getElementById('dot');
-    dot.className = 'dot ' + (b.level === 'red' ? 'bad' : b.level === 'yellow' ? 'warn' : 'on');
-    document.getElementById('topmeta').textContent = `${s.fps} FPS | ${s.dets.length} tracked | face ${s.face_on ? 'ON' : 'OFF'}`;
-    document.getElementById('cammeta').textContent = ` ${s.dets.length} persons`;
-    const rc = document.getElementById('risk');
-    rc.className = 'card risk-' + (b.level || 'green');
-    document.getElementById('risknum').textContent = `${b.risk ?? '--'} ${(b.level || '').toUpperCase()}`;
-    document.getElementById('risknum').style.color = b.level === 'red' ? '#ff3b5c' : b.level === 'yellow' ? '#e5b800' : '#00e5cc';
-    const bar = rc.querySelector('#meter > div');
-    bar.style.width = Math.min(100, (b.risk || 0) * 100) + '%';
-    bar.style.background = b.level === 'red' ? '#ff3b5c' : b.level === 'yellow' ? '#e5b800' : '#00e5cc';
-    document.getElementById('risksub').textContent = `density ${b.density ?? '--'}/m2 | still ${b.stillness ?? '--'} | counterflow ${b.counterflow ?? '--'}`;
-    document.getElementById('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
-      const c = z.count >= 10 ? 'zc-red' : z.count >= 5 ? 'zc-yellow' : '';
-      return `<div class="card ${c}"><b>${n}</b>: ${z.count} people <span class="muted">| longest stay ${dwellMax(z)}s</span></div>`;
-    }).join('') || '<div class="card muted">--</div>';
+    const lvl = b.level || 'green';
+    const pill = $('pill');
+    pill.className = 'status-pill ' + (lvl === 'red' ? 'bad' : lvl === 'yellow' ? 'warn' : 'ok');
+    $('pilltxt').textContent = lvl === 'red' ? 'SURGE RISK' : lvl === 'yellow' ? 'WATCH' : 'NOMINAL';
+    $('mFps').textContent = s.fps ?? '--';
+    $('mTrk').textContent = s.dets.length;
+    $('mFace').textContent = s.face_on ? 'ON' : 'OFF';
+    $('cammeta').textContent = `${s.dets.length} persons`;
+    const banner = $('banner');
+    if (lvl !== 'green') {
+      banner.className = 'banner show ' + (lvl === 'red' ? 'red' : 'yellow');
+      const zs = Object.entries(s.zones || {}).sort((a, b) => b[1].count - a[1].count)[0];
+      $('bannertxt').textContent = lvl === 'red'
+        ? `RED surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people). Divert flow now.`
+        : `Yellow watch: risk ${b.risk}, density ${b.density}/m2. Keep eyes on ${zs ? zs[0] : 'zone'}.`;
+    } else banner.className = 'banner';
+    $('risknum').textContent = b.risk ?? '--';
+    $('risknum').style.color = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
+    const rl = $('risklvl');
+    rl.className = 'gauge-level lvl-' + lvl;
+    $('risklvltxt').textContent = lvl.toUpperCase();
+    $('riskbar').style.width = Math.min(100, (b.risk || 0) * 100) + '%';
+    $('riskbar').style.background = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
+    $('gDen').textContent = b.density ?? '--'; $('gStill').textContent = b.stillness ?? '--'; $('gCf').textContent = b.counterflow ?? '--';
+    $('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
+      const cls = z.count >= 10 ? 'bad' : z.count >= 5 ? 'warn' : '';
+      const dw = Object.values(z.dwell_s || {});
+      const pct = Math.min(100, z.count * 10);
+      return `<div class="card zone ${cls}"><span class="zname">${n}</span><span class="zcount">${z.count}</span>`
+        + `<span class="zsub">longest stay ${dw.length ? Math.max(...dw).toFixed(0) : 0}s</span>`
+        + `<div class="zbar"><div style="width:${pct}%"></div></div></div>`;
+    }).join('') || `<div class="empty"><b>No zone data.</b> Start the backend and point a camera.</div>`;
     const ds = Object.values(s.dossiers || {});
-    document.getElementById('dossiers').innerHTML = ds.length ? ds.map(d => {
-      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="">` : '';
-      return `<div class="card dossier">${img}<div><b>${d.name}</b> <span class="muted">${d.gid}</span><br>stay ${d.dwell_s}s | photos ${d.snaps} | path ${d.trail_pts} pts</div></div>`;
-    }).join('') : '<div class="card muted">No faces yet. Enroll with scripts/enroll.py</div>';
-    document.getElementById('alerts').innerHTML = (s.alerts || []).slice().reverse().map(al =>
-      `<div class="card alert"><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density}<br><span class="muted">${new Date(al.time * 1000).toLocaleTimeString()}</span></div>`).join('')
-      || '<div class="card muted">All quiet.</div>';
-  } catch (e) { /* warming up */ }
+    $('dossiers').innerHTML = ds.length ? ds.map(d => {
+      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="Face snapshot of ${d.name}">` : '';
+      return `<div class="card person">${img}<div><div class="pname">${d.name}</div>`
+        + `<div class="pmeta"><span>STAY <b>${d.dwell_s}s</b></span><span>PHOTOS <b>${d.snaps}</b></span><span>PATH <b>${d.trail_pts}</b></span></div></div></div>`;
+    }).join('') : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span style="font-family:var(--font-data)">python scripts/enroll.py YourName 5</span></div>`;
+    $('alerts').innerHTML = (s.alerts || []).slice().reverse().map(al =>
+      `<div class="card alert-item ${al.level === 'yellow' ? 'yellow' : ''}">`
+      + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>`
+      + `<div><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density}<br><time>${new Date(al.time * 1000).toLocaleTimeString()}</time></div></div>`).join('')
+      || `<div class="empty"><b>All quiet.</b> Alerts appear here the second risk turns yellow.</div>`;
+  } catch (e) {
+    if (++fails === 3) $('alerts').innerHTML = `<div class="conn-err"><b>Backend unreachable.</b> Start it with:<br><span style="font-family:var(--font-data)">python raksha/backend/app.py</span></div>`;
+  }
   setTimeout(tick, 1000);
 }
 tick();
