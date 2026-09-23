@@ -6,27 +6,64 @@ A smart crowd safety system for large public events (concerts, festivals, statio
 Today, control rooms watch dozens of CCTV screens by hand. People get missed, crushes get spotted too late. Raksha changes that:
 
 1. **Live tracking.** Every person gets a stable ID that stays with them across cameras, even in dense crowds.
-2. **Instant person file.** The moment a face is seen clearly, a card pops up: photo, clothing, where they entered, where they have been, how long they stayed.
-3. **Stampede meter.** The system watches density, stillness, and opposite flows. When risk turns red, guards get an alert in under 1 second with the exact zone and what to do.
+2. **Instant person file.** The moment a face is seen clearly, a card pops up: photo, clothing, where they entered, how long they stayed.
+3. **Stampede meter.** The system watches density, stillness, and opposite flows. When risk turns red, guards get an alert in under 1 second with the exact zone.
 
 Same idea as advanced camera systems used abroad, but built privacy first: opt in enrollment, blurred stored video, auto deletion, no ID card linkage, full audit log.
 
-## Problem statement (short version)
-Problem #2: Improving Safety at Large Public Events. Build a platform that monitors crowd density and movement, finds bottlenecks and dangerous congestion, and helps security move from reactive watching to proactive action. Full text is in `Hackathon Problem Statement .md`.
+## What works today (tested on our laptop, RTX 4050)
+- Live wall in browser: camera feed with ID boxes, walking trails, zone counts, stay timers. Open `http://localhost:8000/wall.html` after starting the backend.
+- Tracking: YOLOv8s plus ByteTrack, 15 to 30 FPS. ID holds through short blockages (tested: 60 frame blackout, same ID back).
+- Face file: enroll with webcam (`scripts/enroll.py`), live match at 61 ms per face on GPU, card pops with photo, age, stay time. Unknown faces go to one stranger file, no spam.
+- Stampede meter: fired RED (1.2 plus) on dense test input. Alerts go to the wall plus a log file for handover.
+- Snapshots: best face crops saved per person, shown inside their card on the wall.
+- Deck: 6 slides in official template, validated. PDF ready in `deck/`.
+
+## What is left
+- [ ] Team leader name on slide 1, then re export PDF and upload to portal (needs: one name)
+- [ ] Dense crowd test with many people (our webcam tests are single person so far)
+- [ ] Long gap body matching: our face file covers cross camera identity, body only matching past 6 seconds is still open
+- [ ] Stranger grouping polish: strangers share one file today, split them if time allows
+- [ ] Demo video: record the wall during a walk through plus a face search moment
+- [ ] Optional speedups: TensorRT export, smaller input size, ONNX runtime tuning (works fine without these)
+
+## How to run it
+```powershell
+# 1. Start the backend (needs webcam, runs the full loop)
+python D:\Q_project\raksha\backend\app.py
+# 2. Open in browser
+http://localhost:8000/wall.html
+# 3. Enroll a face (new terminal, look at camera)
+python D:\Q_project\scripts\enroll.py YourName 5
+# 4. Check speed
+python D:\Q_project\scripts\bench_track.py 0 120
+```
+First run downloads models automatically (YOLO 21 MB, face pack 159 MB). Needs NVIDIA GPU for full speed, works on CPU slower.
+
+## How we scale this (plain words)
+Today everything runs on one laptop with one camera. That is fine for the demo. Here is how the same design grows, step by step, with no rewrite:
+
+1. **More cameras, same laptop.** The tracker already keeps one state per camera. Add a second webcam or CCTV stream as a new source. Face files are shared, so a person seen on camera A is already known on camera B.
+2. **Small edge boxes per gate.** A Jetson Orin Nano (about $250, 15 watts) runs detection plus tracking for 4 cameras at the gate itself. It sends only snapshots and numbers upward, not full video. This is exactly how large systems keep network load tiny.
+3. **One GPU server per venue.** Our backend becomes the venue server: many edge boxes feed it, Faiss gallery grows from flat search to indexed search (same code, one setting change), snapshots go to shared storage, alerts fan out to guard phones.
+4. **City level.** Many venue servers feed one search cluster (Milvus vector database plus Kafka message bus). Face search across millions stays under a second. Video stays at the edge, only snapshots and alerts travel.
+5. **What changes in code at each step:** almost nothing. Same detector, same tracker, same gallery interface, same alert format. Only the deployment around it grows: more boxes, bigger gallery index, shared storage.
+
+Rough math for the pitch: one camera at 1080p needs about 2 Mbps. 8 cameras need 16 Mbps, fine on normal wifi. Snapshots are tiny (10 thousand faces a day is about 1 GB). A 2 TB drive holds months of snapshots plus a week of video.
 
 ## What is inside this repo
 | File or folder | What it is | Who should read it |
 |---|---|---|
 | `deck/Raksha_Hackathon2026_Final.pptx` | Our 6 slide submission deck, filled in the official college template | Everyone, this is what judges see |
+| `deck/Raksha_Hackathon2026_Final.pdf` | Same deck as PDF, this is what gets uploaded to the portal | Everyone |
 | `deck/HACKATHON 2026.pptx` | The blank official template, keep as reference | Anyone editing slides |
 | `docs/Hackathon Problem Statement .md` | All 6 problem statements in text form | Everyone |
-| `AGENTS.md` | Playbook for our AI coding assistant: which skill to use, build rules, checklists | Anyone working with the AI agent |
-| `docs/RESEARCH.md` | Build bible: best GitHub repos to copy from, papers, datasets, settings that work, build order | Builders (vision + backend) |
-| `docs/CHINA_DEEP_DIVE.md` | Deep notes on how large scale camera systems work behind the scenes: vendors, standards, algorithms, hardware, real deployments | Builders who want full context |
 | `docs/plan.md` | Living build tracker with checkboxes, updated as phases complete | Everyone, check this to see what is done and what is left |
-| `scripts/` | Dev helpers: `smoke_env.py` (GPU + detect + embed check), `bench_track.py` (tracking FPS benchmark) | Builders |
-| `.agents/skills/` | 8 installed AI skills with all their files: slide making, UI design, computer vision, debugging, brainstorming | Everyone, these make the AI agent much better |
-| `raksha/` | Working prototype code: live vision (`vision/`), early mock API + dashboard (`backend/`, `frontend/`), run notes, demo script | Builders |
+| `docs/RESEARCH.md` | Build bible: best GitHub repos to copy from, papers, datasets, settings that work, build order | Builders (vision plus backend) |
+| `docs/CHINA_DEEP_DIVE.md` | Deep notes on how large scale camera systems work behind the scenes | Builders who want full context |
+| `raksha/` | Working code: live vision, backend API, wall UI, run notes, demo script | Builders |
+| `scripts/` | Dev helpers: env check, FPS benchmark, live wall, enroll, match test, ReID test | Builders |
+| `.agents/skills/` | 8 installed AI skills: slide making, UI design, computer vision, debugging, brainstorming | Everyone, these make the AI agent much better |
 
 ## Skills folder, simple explanation
 The `.agents/skills/` folder teaches our AI assistant how to do expert work:
@@ -38,23 +75,6 @@ The `.agents/skills/` folder teaches our AI assistant how to do expert work:
 - `systematic-debugging`: fixing bugs by finding the root cause first.
 
 Rule for the team: when anyone installs or updates a skill, copy the fresh `.agents/skills/<name>` folder into this repo and commit it, so everyone stays in sync. Restore everything on a new machine with the commands in the Skills section below.
-
-## How we will build it (plain steps)
-1. **Camera input.** Webcam, video file, or CCTV stream. Start with 720p to keep it fast.
-2. **Find and follow people.** YOLOv8 finds people, ByteTrack keeps the same ID on each person frame after frame.
-3. **Face plus details.** Best clear face shot is picked automatically, turned into a compact code (ArcFace), matched against our small gallery. Clothing color, age group, and path get attached.
-4. **One file per person.** Each person gets a single record: IDs, photos, path on map, dwell time, flags.
-5. **Crowd brain.** Count per zone, heatmap, flow direction, stampede score (density times stillness times opposite flow). Red zone means act now.
-6. **Alert and handover.** Guard app push plus one click clip export with audit trail.
-
-Key numbers we design for: face match under 0.5 seconds, any alert under 1 second, bottleneck warning at least 60 seconds before a human would spot it.
-
-## Submission checklist
-- [ ] Deck: 6 slides max in the official template (done, see final pptx)
-- [ ] Team details on slide 1 (Team Leader name: add tomorrow)
-- [ ] Export deck as PDF from PowerPoint (portal takes PDF only)
-- [ ] Demo video: dense frame goes red, guard diverts, missing person found
-- [ ] Short cleanup pass for fonts and spacing before export
 
 ## Skills: install and update commands
 ```powershell
@@ -70,9 +90,10 @@ npx -y skills add alirezarezvani/claude-skills@senior-computer-vision -g -y
 
 ## How to contribute
 1. Clone the repo, make a branch with your name or task (example: `ananya/heatmap-ui`).
-2. Keep it clean: never commit `*.py` scratch files, `node_modules`, thumbnails, PDFs, or research clones. `.gitignore` already blocks them.
-3. Skill updates go in `.agents/skills/<name>` and get committed like normal code.
-4. Open a pull request with a one line summary of what changed. Small PRs get merged fast.
+2. Keep it clean: never commit scratch files, `node_modules`, thumbnails, research clones, model weights, or face galleries. `.gitignore` already blocks most of these.
+3. Never commit real face photos or gallery files. Biometric data stays on your own machine only.
+4. Skill updates go in `.agents/skills/<name>` and get committed like normal code.
+5. Open a pull request with a one line summary of what changed. Small PRs get merged fast.
 
 ## Team
 - Team name: Team Raksha
