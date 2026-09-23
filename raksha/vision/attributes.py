@@ -62,7 +62,8 @@ def _skin_mask(bgr_crop):
 
 
 def measure_color(bgr_crop):
-    """Dominant clothing color of a part crop. Returns (bgr, name, hex) or None."""
+    """Dominant clothing color of a part crop.
+    Returns (bgr, name, hex, conf) or None. Low-consensus names carry ~ prefix."""
     h, w = bgr_crop.shape[:2]
     if h < 8 or w < 8:
         return None
@@ -105,8 +106,13 @@ def measure_color(bgr_crop):
                 break
         if best is None:
             return None
-    if best_frac < 0.45:
-        return None  # no dominant clothing color; honest unknown beats wrong guess
+    if best_frac < 0.30:
+        return None  # hopeless blend; skip rather than guess
+    bgr, nm, hx = _finish(best, lab, d)
+    return bgr, nm, hx, round(best_frac, 2)
+
+
+def _finish(best, lab, d):
     sel = lab[d == best]
     # IQR-clean per channel, then median (outlier-proof representative)
     clean = []
@@ -143,8 +149,8 @@ def parts_info(frame, xyxy):
         m = measure_color(frame[y1:y2, x1:x2])
         if m is None:
             continue
-        bgr, nm, hx = m
-        out[name] = {"box": (x1, y1, x2, y2), "bgr": bgr, "name": nm, "hex": hx}
+        bgr, nm, hx, conf = m
+        out[name] = {"box": (x1, y1, x2, y2), "bgr": bgr, "name": nm, "hex": hx, "conf": conf}
     return out
 
 

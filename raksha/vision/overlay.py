@@ -26,6 +26,10 @@ def draw_person(frame, det, trail, parts, zone_line, compact=False):
     cv2.rectangle(frame, (x1, y1), (x2, y2), BOX, 2)
     for i in range(1, len(trail)):
         cv2.line(frame, trail[i - 1], trail[i], (255, 59, 92), 2)
+    if y2 - y1 < (130 if compact else 60) or det["id"] is None:
+        cv2.putText(frame, str(det["id"]), (x1, max(0, y1 - 6)),
+                    FONT, 0.55, BOX, 2, cv2.LINE_AA)
+        return
     H, W = frame.shape[:2]
     for pname, p in parts.items():
         bx1, by1, bx2, by2 = [int(v) for v in p["box"]]
@@ -85,13 +89,14 @@ def draw_panel(frame, x, y, lines, scale=0.45, side="right"):
 
 
 def draw_track(frame, det, trail, extra_lines=None, box_color=None, full_panel_h=90, compact=False):
-    """Vehicle/simple path: colored box plus small dark panel."""
+    """Vehicle/simple path: colored box plus small dark panel.
+    In compact (crowded) mode, boxes under 130px get an ID tag only."""
     x1, y1, x2, y2 = [int(v) for v in det["xyxy"]]
     color = box_color or (BOX_VEH if det.get("cls", 0) != 0 else BOX)
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
     for i in range(1, len(trail)):
         cv2.line(frame, trail[i - 1], trail[i], (255, 59, 92), 2)
-    if y2 - y1 < full_panel_h or det["id"] is None:
+    if y2 - y1 < (130 if compact else full_panel_h) or det["id"] is None:
         cv2.putText(frame, str(det["id"]), (x1, max(0, y1 - 6)),
                     FONT, 0.55, color, 2, cv2.LINE_AA)
         return
