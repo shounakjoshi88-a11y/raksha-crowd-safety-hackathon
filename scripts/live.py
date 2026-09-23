@@ -34,14 +34,16 @@ while True:
     if f is None:
         break
     dets = trk.update(f)
-    zc = zones.count(dets, f.shape)
+    persons = [d for d in dets if d["cls"] == 0]
+    vehicles = [d for d in dets if d["cls"] != 0]
+    zc = zones.count(persons, f.shape)
     H, W = f.shape[:2]
     zone_of, dwell_of = {}, {}
     for zname, z in zc.items():
         for tid in z["ids"]:
             zone_of[tid] = zname
             dwell_of[tid] = z["dwell_s"].get(tid, 0)
-    for d in dets:
+    for d in persons:
         if d["id"] is None:
             continue
         x1, y1, x2, y2 = map(int, d["xyxy"])
@@ -51,7 +53,15 @@ while True:
         dlbl, spd = direction(tr)
         extra = [f"top {top_color(f, d['xyxy'])}",
                  f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
-        draw_track(f, d, tr, extra)
+        draw_track(f, d, tr, extra, compact=len(dets) > 12)
+    for d in vehicles:
+        if d["id"] is None:
+            continue
+        x1, y1, x2, y2 = map(int, d["xyxy"])
+        tr = trails.setdefault(("v", d["id"]), deque(maxlen=30))
+        tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
+        dlbl, spd = direction(tr)
+        draw_track(f, d, tr, [f"{dlbl} {spd}px/s"], compact=len(dets) > 12)
     # zone divider + panel
     cv2.line(f, (W // 2, 0), (W // 2, H), (120, 120, 120), 1)
     y = 30

@@ -25,6 +25,7 @@
 - [x] `raksha/vision/zones.py`: polygons + per-zone counts + dwell timers (feet-point test)
 - [x] `scripts/live.py`: IDs + trails + zone panel + FPS + save-to-file + frame cap; wall_test.mp4 verified with overlay
 - [x] Crowd clip test: 3 public 720p clips (Grand Central 278f, station rush 260f, street 456f). Peaks 20/15/25 simultaneous, 29-38 FPS. IDs inflate by switches in dense scenes, logged honestly. Shots in README.
+- [x] Vehicles: multi-class tracker (car, motorbike, bus, truck), blue boxes + type panels. Traffic clip 924f: 226 person IDs, 67 vehicle IDs, peak 23, 49-55 FPS. Compact 2-line panels when >12 dets. Demo video recorded (docs/demo/tracking_demo.mp4).
 - Acceptance: 2 sources tracked live, IDs stable through short occlusion, FPS logged.
 
 ## Phase 2: Face dossier, one person one file [x] (done 2026-09-24)

@@ -35,6 +35,16 @@ We ran the live tracker end to end on three public 720p crowd clips. Same code a
 | Grand Central station | 278 | 29.6 FPS | 20 | 152 |
 | Rush hour platform | 260 | 35.4 FPS | 15 | 207 |
 | Shopping street | 456 | 38.1 FPS | 25 | 167 |
+| City traffic (people plus vehicles) | 924 | 49 to 55 FPS | 23 | 226 people, 67 vehicles (cars, bikes, trucks, bus) |
+
+Crowds plus vehicles are tracked together. People get green boxes with clothing color panels, vehicles get blue boxes with type plus direction panels. Number plates are not read yet, that is listed below.
+
+https://github.com/shounakjoshi88-a11y/raksha-crowd-safety-hackathon/blob/main/docs/demo/tracking_demo.mp4
+
+*Watch: 15 seconds of live tracking on street traffic. Every box carries its file panel.*
+
+![Traffic tracking](docs/demo/traffic.jpg)
+*Street traffic: people plus cars, bikes and trucks tracked together.*
 
 Honest note: total IDs are higher than real people because IDs sometimes restart in very dense scenes (known ByteTrack tradeoff without appearance matching). Peak simultaneous count is the solid number. Face files fix identity across cameras regardless.
 

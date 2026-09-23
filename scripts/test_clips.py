@@ -11,13 +11,14 @@ for name in CLIPS:
     path = f"D:/Q_project/assets/clips/{name}"
     cap = cv2.VideoCapture(path)
     ids, peak, n, t0, saved = set(), 0, 0, time.time(), 0
-    boxes_drawn = 0
+    boxes_drawn, veh_ids = 0, set()
     while True:
         ok, f = cap.read()
         if not ok:
             break
         dets = trk.update(f)
-        persons = [d for d in dets if d["id"] is not None]
+        persons = [d for d in dets if d["id"] is not None and d["cls"] == 0]
+        veh_ids.update(d["id"] for d in dets if d["id"] is not None and d["cls"] != 0)
         ids.update(d["id"] for d in persons)
         peak = max(peak, len(persons))
         n += 1
@@ -31,5 +32,5 @@ for name in CLIPS:
             saved += 1
     cap.release()
     dt = time.time() - t0
-    print(f"{name}: frames={n} fps={n/dt:.1f} unique_ids={len(ids)} peak_simultaneous={peak} boxes_drawn={boxes_drawn}")
+    print(f"{name}: frames={n} fps={n/dt:.1f} unique_ids={len(ids)} peak_simultaneous={peak} vehicles={len(veh_ids)} boxes_drawn={boxes_drawn}")
 print("shots saved")

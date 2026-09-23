@@ -19,17 +19,20 @@ for _ in range(5):
     if f is None:
         break
     trk.update(f)
-ids, persons, t0 = set(), 0, time.time()
+ids, persons, vehs, t0 = set(), 0, 0, time.time()
 done = 0
 for _ in range(n):
     f = read_frame(cap)
     if f is None:
         break
     for d in trk.update(f):
-        persons += 1
-        if d["id"] is not None:
-            ids.add(d["id"])
+        if d["cls"] == 0:
+            persons += 1
+            if d["id"] is not None:
+                ids.add(d["id"])
+        else:
+            vehs += 1
     done += 1
 dt = time.time() - t0
 cap.release()
-print(f"frames={done} fps={done/dt:.1f} unique_ids={len(ids)} person_dets={persons}")
+print(f"frames={done} fps={done/dt:.1f} unique_ids={len(ids)} person_dets={persons} vehicle_dets={vehs}")

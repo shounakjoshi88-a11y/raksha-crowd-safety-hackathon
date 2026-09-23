@@ -44,7 +44,7 @@ def direction(trail, fps=15.0):
     x1, y1 = trail[-1]
     dx, dy = x1 - x0, y1 - y0
     dist = float(np.hypot(dx, dy))
-    if dist < 8:
+    if dist < 5:
         return "still", 0.0
     ang = float(np.degrees(np.arctan2(-dy, dx)))  # y down, so flip; 0=E, 90=N
     dirs = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"]
