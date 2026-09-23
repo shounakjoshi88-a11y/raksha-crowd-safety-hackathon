@@ -7,6 +7,8 @@ sys.path.insert(0, "D:/Q_project")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 from raksha.vision.zones import ZoneCounter
+from raksha.vision.attributes import top_color, direction
+from raksha.vision.overlay import draw_track
 
 ap = argparse.ArgumentParser()
 ap.add_argument("source", nargs="?", default="0")
@@ -34,6 +36,11 @@ while True:
     dets = trk.update(f)
     zc = zones.count(dets, f.shape)
     H, W = f.shape[:2]
+    zone_of, dwell_of = {}, {}
+    for zname, z in zc.items():
+        for tid in z["ids"]:
+            zone_of[tid] = zname
+            dwell_of[tid] = z["dwell_s"].get(tid, 0)
     for d in dets:
         if d["id"] is None:
             continue
@@ -41,10 +48,10 @@ while True:
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         tr = trails.setdefault(d["id"], deque(maxlen=30))
         tr.append((cx, cy))
-        cv2.rectangle(f, (x1, y1), (x2, y2), (0, 229, 204), 2)
-        cv2.putText(f, f"ID {d['id']}", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 229, 204), 2)
-        for i in range(1, len(tr)):
-            cv2.line(f, tr[i - 1], tr[i], (255, 59, 92), 2)
+        dlbl, spd = direction(tr)
+        extra = [f"top {top_color(f, d['xyxy'])}",
+                 f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
+        draw_track(f, d, tr, extra)
     # zone divider + panel
     cv2.line(f, (W // 2, 0), (W // 2, H), (120, 120, 120), 1)
     y = 30

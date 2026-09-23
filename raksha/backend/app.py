@@ -18,6 +18,8 @@ from raksha.vision.faces import FaceEngine
 from raksha.vision.gallery import Gallery
 from raksha.vision.dossier import Dossier
 from raksha.vision.brain import CrowdBrain
+from raksha.vision.attributes import top_color, direction
+from raksha.vision.overlay import draw_track
 
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
@@ -53,16 +55,21 @@ def vision_loop(src):
         zc = zones.count(dets, f.shape)
         br = brain.update(f, sum(z["count"] for z in zc.values()))
         H, W = f.shape[:2]
+        zone_of, dwell_of = {}, {}
+        for zname, z in zc.items():
+            for tid in z["ids"]:
+                zone_of[tid] = zname
+                dwell_of[tid] = z["dwell_s"].get(tid, 0)
         for d in dets:
             if d["id"] is None:
                 continue
             x1, y1, x2, y2 = map(int, d["xyxy"])
             tr = trails.setdefault(d["id"], deque(maxlen=30))
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
-            cv2.rectangle(f, (x1, y1), (x2, y2), (0, 229, 204), 2)
-            cv2.putText(f, f"ID {d['id']}", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 229, 204), 2)
-            for i in range(1, len(tr)):
-                cv2.line(f, tr[i - 1], tr[i], (255, 59, 92), 2)
+            dlbl, spd = direction(tr)
+            extra = [f"top {top_color(f, d['xyxy'])}",
+                     f"{zone_of.get(d['id'], '-')} {dwell_of.get(d['id'], 0):.0f}s {dlbl}"]
+            draw_track(f, d, tr, extra)
         if eng and n % 12 == 0:
             for fc in eng.get_faces(f):
                 nm, sim, meta = gal.search(fc["embedding"])
