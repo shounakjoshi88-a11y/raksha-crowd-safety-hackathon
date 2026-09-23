@@ -61,7 +61,7 @@ def vision_loop(src):
             cv2.putText(f, f"ID {d['id']}", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 229, 204), 2)
             for i in range(1, len(tr)):
                 cv2.line(f, tr[i - 1], tr[i], (255, 59, 92), 2)
-        if eng and n % 6 == 0:
+        if eng and n % 12 == 0:
             for fc in eng.get_faces(f):
                 nm, sim, meta = gal.search(fc["embedding"])
                 votes.append(nm)

@@ -1,5 +1,6 @@
 """Crowd brain: density + Farneback flow (stillness, counterflow, entropy) -> stampede risk + alerts."""
 import time
+import json
 import cv2
 import numpy as np
 
@@ -30,8 +31,11 @@ class CrowdBrain:
         risk = float(np.clip(rho * still * (1 + cf), 0, 1.5))
         level = "red" if risk > 0.6 else "yellow" if risk > 0.4 else "green"
         if level != "green":
-            self.alerts.append({"level": level, "risk": round(risk, 2),
-                                "density": round(density, 2), "time": time.time()})
+            al = {"level": level, "risk": round(risk, 2),
+                  "density": round(density, 2), "time": time.time()}
+            self.alerts.append(al)
             self.alerts = self.alerts[-50:]
+            with open("D:/Q_project/gallery/alerts.jsonl", "a") as f:
+                f.write(json.dumps(al) + "\n")
         return {"density": round(density, 2), "risk": round(risk, 2), "level": level,
                 "stillness": round(still, 2), "counterflow": round(cf, 2), "entropy": round(ent, 2)}

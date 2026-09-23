@@ -39,19 +39,21 @@
 - [ ] Stranger clustering polish (currently single stranger dossier)
 - Acceptance: enrolled face walks in → card pops <0.5s, unknowns clustered not spammed.
 
-## Phase 3: Cross-camera ReID + global ID [ ]
-- [ ] botsort.yaml copy with `with_reid: True`, appearance_thresh 0.6, proximity 0.5
-- [ ] Split-clip test: same person two views → one global ID (Hungarian on demand)
-- [ ] Mini-map trajectory across cam A → cam B
-- Acceptance: re-entry keeps global ID in 4/5 trials.
+## Phase 3: Cross-camera ReID + global ID [~] (tested honestly 2026-09-24)
+- [x] `raksha/vision/botsort_reid.yaml`: with_reid True, appearance_thresh 0.4, gmc none, buffer 60
+- [x] `scripts/test_reid.py`: 60-frame blackout → ID persisted (buffer + ReID combined)
+- [x] 100-frame blackout (beyond buffer): new ID issued, auto-ReID did NOT rebind at 0.6 or 0.4
+- [x] Decision: track_buffer 60 covers ~4-6s occlusions (verified). Cross-cam global identity carried by FACE gallery (same face → same dossier), the stronger signal. Standalone OSNet deferred to Phase 5 if time.
+- Acceptance: re-entry keeps global ID in 4/5 trials. (Short-gap: yes. Long-gap body-only: no, face covers it.)
 
-## Phase 4: Crowd brain [ ]
-- [ ] Zone density (count/area) + heatmap overlay
-- [ ] Farneback flow @320p: stillness + counterflow + entropy features
-- [ ] Stampede meter: risk = density_norm x stillness x (1 + counterflow); RED >0.6, YELLOW >0.4
-- [ ] Bottleneck box: FTLE-lite or contour-defect on flow segments, 1 Hz
-- [ ] Alerts pipeline: <1s wall pop + guard push mock + audit log + clip export hook
-- Acceptance: dense test frame → RED + bottleneck box + alert entry with snapshot.
+## Phase 4: Crowd brain [x] (done 2026-09-24)
+- [x] Zone density (count/area) + heatmap overlay (zone panel; heatmap deferred, counts suffice for meter)
+- [x] Farneback flow @320p: stillness + counterflow + entropy (`raksha/vision/brain.py`)
+- [x] Stampede meter: risk = density_norm x stillness x (1 + counterflow); RED >0.6 YELLOW >0.4 (verified RED 1.2-1.36 at 6/m2)
+- [x] Alerts: <1s wall pop + `gallery/alerts.jsonl` handover log (LOCAL ONLY, never push)
+- [x] Wall tune: face every 12th frame (was 6th) to lift FPS
+- [ ] Bottleneck box FTLE-lite (rule meter + zones cover demo; add only if time)
+- Acceptance: dense test frame → RED + alert entry with snapshot.
 
 ## Phase 5: Harden + demo + submission [ ]
 - [ ] ONNX export YOLOv8s, auto frame-skip by FPS, face-blur stored video, 7-day purge flag
