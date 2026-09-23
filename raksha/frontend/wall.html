@@ -9,14 +9,13 @@
     --bg: #020617; --primary: #0F172A; --secondary: #1E293B; --card: #0E1223;
     --muted: #1A1E2F; --muted-fg: #94A3B8; --fg: #F8FAFC; --border: #334155;
     --accent: #22C55E; --warn: #E5B800; --danger: #EF4444; --info: #38BDF8;
-    --radius: 10px; --gap: 16px;
+    --radius: 10px; --gap: 14px;
     --font-ui: "Fira Sans", "Segoe UI", Calibri, Arial, sans-serif;
     --font-data: "Fira Code", "Cascadia Mono", Consolas, monospace;
   }
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
-  /* top command bar */
-  .cmdbar { display: flex; align-items: center; gap: 16px; padding: 10px 24px;
+  .cmdbar { display: flex; align-items: center; gap: 14px; padding: 10px 24px;
     background: var(--primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
   .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: 1px; }
   .brand svg { width: 26px; height: 26px; }
@@ -30,16 +29,21 @@
   .cmdbar .spacer { flex: 1; }
   .metric { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted-fg); }
   .metric b { color: var(--fg); font-weight: 600; }
-  /* alert banner strip */
   .banner { display: none; align-items: center; gap: 12px; padding: 10px 24px; font-size: 15px; font-weight: 600; }
   .banner.show { display: flex; }
   .banner.red { background: #3d0a12; border-bottom: 2px solid var(--danger); }
   .banner.yellow { background: #38300a; border-bottom: 2px solid var(--warn); }
   .banner svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .wrap { max-width: 1720px; margin: 0 auto; padding: var(--gap) 24px; }
+  /* KPI strip */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; }
+  .kpi .klabel { font-size: 11px; letter-spacing: 2px; color: var(--muted-fg); font-weight: 600; }
+  .kpi .kvalue { font-family: var(--font-data); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .kpi .ksub { font-size: 12px; color: var(--muted-fg); }
   /* main grid */
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gap);
-    padding: var(--gap) 24px; max-width: 1720px; margin: 0 auto; }
-  .videoframe { position: relative; background: #000; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gap); }
+  .videoframe { position: relative; background: #000; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; align-self: start; }
   .videoframe img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
   .videoframe .live-tag { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px;
     background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
@@ -47,11 +51,12 @@
   .videoframe .legend { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 12px;
     background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; font-size: 12px; color: var(--muted-fg); }
   .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-  /* rail */
-  .rail h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 18px 0 8px; font-weight: 600; }
+  .rail h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 16px 0 8px; font-weight: 600; }
   .rail h2:first-child { margin-top: 0; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
-  /* risk gauge */
+  .card b { color: #cadcfc; }
+  .muted { color: var(--muted-fg); font-size: 13px; }
+  /* gauge + sparkline */
   .gauge-top { display: flex; align-items: baseline; justify-content: space-between; }
   .gauge-num { font-family: var(--font-data); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .gauge-level { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: 1px;
@@ -60,10 +65,18 @@
   .lvl-green { color: var(--accent); border-color: var(--accent); } .lvl-yellow { color: var(--warn); border-color: var(--warn); } .lvl-red { color: var(--danger); border-color: var(--danger); }
   .bar { height: 12px; border-radius: 6px; background: var(--muted); overflow: hidden; margin-top: 10px; }
   .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width .5s ease; }
+  .spark { display: flex; align-items: flex-end; gap: 2px; height: 36px; margin-top: 10px; }
+  .spark i { flex: 1; background: var(--info); border-radius: 1px; min-height: 2px; opacity: .85; }
   .gauge-sub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
   .gauge-sub div { background: var(--muted); border-radius: 6px; padding: 6px 8px; text-align: center; }
   .gauge-sub b { display: block; font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; }
   .gauge-sub span { font-size: 11px; color: var(--muted-fg); letter-spacing: .5px; }
+  /* captures feed */
+  .captures { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+  .cap { display: flex; gap: 10px; align-items: center; background: var(--muted); border-radius: 8px; padding: 6px 8px; }
+  .cap img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #000; }
+  .cap .cwho { font-weight: 600; font-size: 14px; }
+  .cap .cmeta { font-size: 12px; color: var(--muted-fg); font-family: var(--font-data); }
   /* zones */
   .zone { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border-left: 4px solid var(--accent); }
   .zone.warn { border-left-color: var(--warn); } .zone.bad { border-left-color: var(--danger); }
@@ -72,7 +85,9 @@
   .zone .zsub { font-size: 12px; color: var(--muted-fg); }
   .zone .zbar { grid-column: 1 / -1; height: 6px; background: var(--muted); border-radius: 3px; overflow: hidden; }
   .zone .zbar > div { height: 100%; background: var(--info); }
-  /* dossiers */
+  /* dossiers + search */
+  .search { width: 100%; background: var(--muted); border: 1px solid var(--border); color: var(--fg);
+    border-radius: 8px; padding: 8px 12px; font-size: 14px; font-family: var(--font-ui); margin-bottom: 8px; }
   .person { display: flex; gap: 12px; align-items: center; }
   .person img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #000; border: 1px solid var(--border); flex-shrink: 0; }
   .person .pname { font-weight: 700; font-size: 16px; }
@@ -86,9 +101,14 @@
   .alert-item svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
   .alert-item time { font-size: 12px; color: var(--muted-fg); font-family: var(--font-data); }
   .conn-err { background: #3d0a12; border: 1px solid var(--danger); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; }
-  footer { padding: 10px 24px 20px; color: var(--muted-fg); font-size: 12px; max-width: 1720px; margin: 0 auto; }
+  /* health row */
+  .health { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-top: var(--gap); }
+  .health .card { margin-bottom: 0; text-align: center; padding: 8px; }
+  .health b { font-family: var(--font-data); font-size: 18px; display: block; }
+  .health span { font-size: 11px; color: var(--muted-fg); letter-spacing: 1px; }
+  footer { padding: 12px 24px 20px; color: var(--muted-fg); font-size: 12px; max-width: 1720px; margin: 0 auto; }
   :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
-  @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } .kpis, .health { grid-template-columns: repeat(2, 1fr); } }
   @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
 </style>
 </head>
@@ -109,47 +129,66 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>
   <span id="bannertxt"></span>
 </div>
-<main class="layout">
-  <section class="videoframe" aria-label="Live camera wall">
-    <img src="/stream.mjpeg" alt="Live tracked camera feed">
-    <div class="live-tag"><span class="rec"></span>LIVE <span id="cammeta" class="metric"></span></div>
-    <div class="legend" aria-hidden="true">
-      <span><i style="background:#00E5CC"></i>track ID</span>
-      <span><i style="background:#FF3B5C"></i>trail</span>
-      <span><i style="background:#FFC800"></i>face file</span>
-    </div>
+<div class="wrap">
+  <section class="kpis" aria-label="Key numbers">
+    <div class="kpi"><div class="klabel">TRACKED NOW</div><div class="kvalue" id="kTrk">--</div><div class="ksub" id="kTrkSub">live IDs</div></div>
+    <div class="kpi"><div class="klabel">ON FILE</div><div class="kvalue" id="kFile">--</div><div class="ksub">dossiers + gallery</div></div>
+    <div class="kpi"><div class="klabel">ALERTS</div><div class="kvalue" id="kAl">--</div><div class="ksub">this session</div></div>
+    <div class="kpi"><div class="klabel">RISK NOW</div><div class="kvalue" id="kRisk">--</div><div class="ksub" id="kRiskSub">level</div></div>
   </section>
-  <aside class="rail">
-    <h2>STAMPEDE RISK</h2>
-    <div class="card">
-      <div class="gauge-top">
-        <span class="gauge-num" id="risknum">--</span>
-        <span class="gauge-level lvl-green" id="risklvl">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
-          <span id="risklvltxt">GREEN</span></span>
+  <main class="layout">
+    <section class="videoframe" aria-label="Live camera wall">
+      <img src="/stream.mjpeg" alt="Live tracked camera feed">
+      <div class="live-tag"><span class="rec" style="width:9px;height:9px;border-radius:50%;background:#EF4444;display:inline-block"></span>LIVE <span id="cammeta"></span></div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:#00E5CC"></i>track ID</span>
+        <span><i style="background:#FF3B5C"></i>trail</span>
+        <span><i style="background:#FFC800"></i>face file</span>
       </div>
-      <div class="bar"><div id="riskbar"></div></div>
-      <div class="gauge-sub">
-        <div><b id="gDen">--</b><span>DENSITY /m2</span></div>
-        <div><b id="gStill">--</b><span>STILLNESS</span></div>
-        <div><b id="gCf">--</b><span>COUNTERFLOW</span></div>
+    </section>
+    <aside class="rail">
+      <h2>STAMPEDE RISK</h2>
+      <div class="card">
+        <div class="gauge-top">
+          <span class="gauge-num" id="risknum">--</span>
+          <span class="gauge-level lvl-green" id="risklvl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
+            <span id="risklvltxt">GREEN</span></span>
+        </div>
+        <div class="bar"><div id="riskbar"></div></div>
+        <div class="spark" id="spark" aria-hidden="true"></div>
+        <div class="gauge-sub">
+          <div><b id="gDen">--</b><span>DENSITY /m2</span></div>
+          <div><b id="gStill">--</b><span>STILLNESS</span></div>
+          <div><b id="gCf">--</b><span>COUNTERFLOW</span></div>
+        </div>
       </div>
-    </div>
-    <h2>ZONES</h2>
-    <div id="zones"></div>
-    <h2>PEOPLE ON FILE</h2>
-    <div id="dossiers" aria-live="polite"></div>
-    <h2>ALERTS</h2>
-    <div id="alerts" aria-live="polite"></div>
-  </aside>
-</main>
+      <h2>LATEST CAPTURES</h2>
+      <div class="captures" id="captures"><div class="empty">No captures yet.</div></div>
+      <h2>ZONES</h2>
+      <div id="zones"></div>
+      <h2>PEOPLE ON FILE</h2>
+      <input class="search" id="q" type="search" placeholder="Search name..." aria-label="Search dossiers by name">
+      <div id="dossiers" aria-live="polite"></div>
+      <h2>ALERTS</h2>
+      <div id="alerts" aria-live="polite"></div>
+    </aside>
+  </main>
+  <section class="health" aria-label="System health">
+    <div class="card"><b id="hFps">--</b><span>LOOP FPS</span></div>
+    <div class="card"><b id="hFace">--</b><span>FACE ENGINE</span></div>
+    <div class="card"><b id="hGal">--</b><span>GALLERY IDS</span></div>
+    <div class="card"><b id="hGpu">--</b><span>COMPUTE</span></div>
+  </section>
+</div>
 <footer>Raksha demo build. Faces stay on this machine. Snapshots auto purge after 7 days. No ID linkage.</footer>
 <script>
 const $ = id => document.getElementById(id);
 function clock() { $('clock').textContent = new Date().toLocaleTimeString(); }
 setInterval(clock, 1000); clock();
-let fails = 0;
-async function tick() {
+let fails = 0, alertsSeen = 0;
+$('q').addEventListener('input', () => tick(true));
+async function tick(soft) {
   try {
     const s = await (await fetch('/api/state')).json();
     fails = 0;
@@ -170,6 +209,15 @@ async function tick() {
         ? `RED surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people). Divert flow now.`
         : `Yellow watch: risk ${b.risk}, density ${b.density}/m2. Keep eyes on ${zs ? zs[0] : 'zone'}.`;
     } else banner.className = 'banner';
+    const ds = Object.values(s.dossiers || {});
+    $('kTrk').textContent = s.dets.length;
+    $('kTrkSub').textContent = 'live IDs on wall';
+    $('kFile').textContent = ds.length;
+    $('kFileSub') && ($('kFileSub').textContent = '');
+    $('kAl').textContent = (s.alerts || []).length;
+    $('kRisk').textContent = b.risk ?? '--';
+    $('kRisk').style.color = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
+    $('kRiskSub').textContent = lvl + ' level';
     $('risknum').textContent = b.risk ?? '--';
     $('risknum').style.color = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
     const rl = $('risklvl');
@@ -177,7 +225,16 @@ async function tick() {
     $('risklvltxt').textContent = lvl.toUpperCase();
     $('riskbar').style.width = Math.min(100, (b.risk || 0) * 100) + '%';
     $('riskbar').style.background = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
+    $('spark').innerHTML = (s.risk_hist || []).map(v => {
+      const h = Math.max(6, Math.min(100, v * 100));
+      const c = v > 0.6 ? 'var(--danger)' : v > 0.4 ? 'var(--warn)' : 'var(--info)';
+      return `<i style="height:${h}%;background:${c}"></i>`;
+    }).join('');
     $('gDen').textContent = b.density ?? '--'; $('gStill').textContent = b.stillness ?? '--'; $('gCf').textContent = b.counterflow ?? '--';
+    $('captures').innerHTML = (s.captures || []).map(c =>
+      `<div class="cap"><img src="${c.url}" alt="Capture of ${c.name}" loading="lazy">`
+      + `<div><div class="cwho">${c.name}</div><div class="cmeta">${c.sim} sim | ${new Date(c.time * 1000).toLocaleTimeString()}</div></div></div>`).join('')
+      || '<div class="empty">No captures yet.</div>';
     $('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
       const cls = z.count >= 10 ? 'bad' : z.count >= 5 ? 'warn' : '';
       const dw = Object.values(z.dwell_s || {});
@@ -186,23 +243,32 @@ async function tick() {
         + `<span class="zsub">longest stay ${dw.length ? Math.max(...dw).toFixed(0) : 0}s</span>`
         + `<div class="zbar"><div style="width:${pct}%"></div></div></div>`;
     }).join('') || `<div class="empty"><b>No zone data.</b> Start the backend and point a camera.</div>`;
-    const ds = Object.values(s.dossiers || {});
-    $('dossiers').innerHTML = ds.length ? ds.map(d => {
-      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="Face snapshot of ${d.name}">` : '';
-      return `<div class="card person">${img}<div><div class="pname">${d.name}</div>`
+    const q = ($('q').value || '').toLowerCase();
+    const shown = ds.filter(d => (d.name || '').toLowerCase().includes(q));
+    $('dossiers').innerHTML = shown.length ? shown.map(d => {
+      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="Face snapshot of ${d.name}" loading="lazy">` : '';
+      const at = d.attrs || {};
+      const ag = (at.age || at.gender) ? ` ${at.age ?? '?'}${at.gender ?? ''}` : '';
+      return `<div class="card person">${img}<div><div class="pname">${d.name}${ag}</div>`
         + `<div class="pmeta"><span>STAY <b>${d.dwell_s}s</b></span><span>PHOTOS <b>${d.snaps}</b></span><span>PATH <b>${d.trail_pts}</b></span></div></div></div>`;
-    }).join('') : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span style="font-family:var(--font-data)">python scripts/enroll.py YourName 5</span></div>`;
+    }).join('') : (ds.length ? `<div class="empty">No match for search.</div>`
+      : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span style="font-family:var(--font-data)">python scripts/enroll.py YourName 5</span></div>`);
+    if ((s.alerts || []).length > alertsSeen) alertsSeen = s.alerts.length;
     $('alerts').innerHTML = (s.alerts || []).slice().reverse().map(al =>
       `<div class="card alert-item ${al.level === 'yellow' ? 'yellow' : ''}">`
       + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>`
       + `<div><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density}<br><time>${new Date(al.time * 1000).toLocaleTimeString()}</time></div></div>`).join('')
       || `<div class="empty"><b>All quiet.</b> Alerts appear here the second risk turns yellow.</div>`;
+    $('hFps').textContent = s.fps ?? '--';
+    $('hFace').textContent = s.face_on ? 'GPU' : 'OFF';
+    $('hGal').textContent = s.gal_size ?? ds.length;
+    $('hGpu').textContent = 'RTX 4050';
   } catch (e) {
     if (++fails === 3) $('alerts').innerHTML = `<div class="conn-err"><b>Backend unreachable.</b> Start it with:<br><span style="font-family:var(--font-data)">python raksha/backend/app.py</span></div>`;
   }
-  setTimeout(tick, 1000);
+  if (!soft) setTimeout(() => tick(false), 1000);
 }
-tick();
+tick(false);
 </script>
 </body>
 </html>

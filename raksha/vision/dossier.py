@@ -13,6 +13,7 @@ class Dossier:
         self.snapshots = []  # file paths of best crops
         self.trail = deque(maxlen=200)  # (cam, x, y, t)
         self.flags = []
+        self.attrs = {}  # age, gender, sim from gallery match
 
     def touch(self, track_id=None, pos=None, snapshot=None):
         self.last_seen = time.time()
@@ -32,4 +33,4 @@ class Dossier:
         return {"gid": self.gid, "name": self.name, "dwell_s": round(self.dwell_s, 1),
                 "tracks": sorted(self.track_ids), "snaps": len(self.snapshots),
                 "snap_urls": ["/snaps/" + _os.path.basename(s) for s in self.snapshots],
-                "trail_pts": len(self.trail), "flags": self.flags}
+                "trail_pts": len(self.trail), "flags": self.flags, "attrs": self.attrs}

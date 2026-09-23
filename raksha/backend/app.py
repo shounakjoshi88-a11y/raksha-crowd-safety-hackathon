@@ -22,8 +22,9 @@ from raksha.vision.brain import CrowdBrain
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
 
-state = {"jpg": None, "dets": [], "zones": {}, "dossiers": {},
-         "brain": {}, "alerts": [], "fps": 0.0, "face_on": False}
+state = {"jpg": None, "dets": [], "zones": {}, "dossiers": {}, "captures": [],
+         "brain": {}, "risk_hist": [], "alerts": [], "fps": 0.0, "face_on": False,
+         "gal_size": 0}
 lock = threading.Lock()
 
 
@@ -40,6 +41,7 @@ def vision_loop(src):
     eng = FaceEngine() if face_on else None
     brain = CrowdBrain()
     trails, votes, dossiers = {}, deque(maxlen=3), {}
+    risk_hist, captures = deque(maxlen=60), deque(maxlen=20)
     t0, n = time.time(), 0
     fps = 0.0
     while True:
@@ -68,11 +70,15 @@ def vision_loop(src):
                 label = nm if nm and list(votes).count(nm) >= 2 else "stranger"
                 gid = nm or "stranger"
                 ds = dossiers.setdefault(gid, Dossier(gid, nm))
+                if meta:
+                    ds.attrs = {"age": meta.get("age"), "gender": meta.get("gender"), "sim": round(sim, 2)}
                 x1, y1, x2, y2 = fc["bbox"]
                 snap = None
                 if len(ds.snapshots) < 3:
                     snap = os.path.join(SNAP_DIR, f"{gid}_{len(ds.snapshots)}.jpg")
                     cv2.imwrite(snap, f[y1:y2, x1:x2])
+                    captures.appendleft({"url": "/snaps/" + os.path.basename(snap),
+                                         "name": label, "sim": round(sim, 2), "time": time.time()})
                 ds.touch(snapshot=snap)
                 cv2.rectangle(f, (x1, y1), (x2, y2), (255, 200, 0), 2)
                 cv2.putText(f, f"{label} {sim:.2f}", (x1, y2 + 20),
@@ -81,10 +87,13 @@ def vision_loop(src):
         if n % 10 == 0:
             fps = n / (time.time() - t0)
         ok, buf = cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        risk_hist.append(br["risk"])
         with lock:
             state.update({"jpg": buf.tobytes() if ok else None, "dets": dets, "zones": zc,
-                          "brain": br, "alerts": brain.alerts[-10:], "fps": round(fps, 1),
-                          "face_on": face_on,
+                          "brain": br, "risk_hist": list(risk_hist),
+                          "captures": list(captures),
+                          "alerts": brain.alerts[-10:], "fps": round(fps, 1),
+                          "face_on": face_on, "gal_size": gal.index.ntotal,
                           "dossiers": {k: v.card() for k, v in dossiers.items()}})
 
 
