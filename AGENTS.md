@@ -4,10 +4,14 @@
 > Goal: China-grade live tracking + instant person dossier, ethical & privacy-first.
 > This file is the agent's reference. Follow skills below for every task.
 
-## Project source of truth
-- Problem statements: `Hackathon Problem Statement .md`
-- Submission deck: `Raksha_Hackathon2026_Final.pptx` (6 slides, exact college template)
-- Research: `RESEARCH.md` (build bible) + `CHINA_DEEP_DIVE.md` (Chinese stack blueprint)
+## Project source of truth (repo layout)
+- Problem statements: `docs/Hackathon Problem Statement .md`
+- Submission deck: `deck/Raksha_Hackathon2026_Final.pptx` (6 slides, exact college template)
+- Template: `deck/HACKATHON 2026.pptx`
+- Research: `docs/RESEARCH.md` (build bible) + `docs/CHINA_DEEP_DIVE.md` (Chinese stack blueprint)
+- Living build tracker: `docs/plan.md`
+- Prototype: `raksha/backend/main.py`, `raksha/frontend/index.html`, live vision `raksha/vision/`
+- Dev helpers: `scripts/smoke_env.py`, `scripts/bench_track.py`
 
 ## Installed skills (project-local copy + global)
 Project-local (use these first):
