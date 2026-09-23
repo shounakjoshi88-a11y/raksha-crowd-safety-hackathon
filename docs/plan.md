@@ -27,13 +27,15 @@
 - [ ] Crowd clip test (multi-person): pending, needs dense test video
 - Acceptance: 2 sources tracked live, IDs stable through short occlusion, FPS logged.
 
-## Phase 2: Face dossier, one person one file [~] (engine + enroll + match + card done 2026-09-24)
+## Phase 2: Face dossier, one person one file [x] (done 2026-09-24)
 - [x] `raksha/vision/faces.py`: buffalo_s FaceAnalysis, ctx_id=0, det_size 640, thr 0.5 + blur/size gate
 - [x] `scripts/enroll.py`: Demo01 enrolled, 3 shots, blur 88-122, gallery/gallery.faiss+json (LOCAL ONLY, never push)
 - [x] `raksha/vision/gallery.py`: Faiss IndexFlatIP cosine, thr 0.40, save/load
 - [x] Live match `scripts/match_live.py`: 3-frame vote smoothing → Demo01 card, dwell 7.7s
 - [x] `raksha/vision/dossier.py`: gid, tracks, trail, dwell, flags, card()
-- [ ] Save best snapshot crops to disk per dossier (currently counted, not written)
+- [x] Snapshot crops saved to disk: `gallery/snaps/<gid>_N.jpg`, max 3 per dossier (verified Demo01 snaps=3)
+- [x] Backend proper: `raksha/vision/brain.py` (density/flow/risk/alerts) + `raksha/backend/app.py` (threaded loop, /api/state, /stream.mjpeg, static wall) + `raksha/frontend/wall.html` (stream + meter + zones + dossiers + alerts)
+- [x] Live verified: track ID 1 conf 0.95, Stage dwell 21s, Demo01 dwell 20.5s, brain green, wall.html 200
 - [ ] Stranger clustering polish (currently single stranger dossier)
 - Acceptance: enrolled face walks in → card pops <0.5s, unknowns clustered not spammed.
 
@@ -60,4 +62,6 @@
 
 ## Follow-ups discovered during build
 - 2026-09-23: onnxruntime 1.27 here is CPU-only build (no CUDAExecutionProvider), so InsightFace runs CPU (~438ms first run). Consider onnxruntime-gpu in Phase 5 if face latency blocks <0.5s card pop. Face runs on crops + skipped frames, so fine for now.
+- 2026-09-24: wall runs ~3 FPS with face every 6th frame (CPU ORT is the bottleneck; YOLO alone does 14-30). Fix options: face on track crops only, every 12th frame, or onnxruntime-gpu. Phase 5.
+- 2026-09-24: FastAPI static mount at / must be registered AFTER /api routes or it swallows them (Starlette matches in order). Fixed in app.py.
 - (add here with date)
