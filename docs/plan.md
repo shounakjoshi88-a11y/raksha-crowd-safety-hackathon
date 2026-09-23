@@ -77,4 +77,6 @@
 - 2026-09-24: Chinese-style overlay shipped (`vision/attributes.py` top-color HSV + compass dir, `vision/overlay.py` dark panels, odd/even side split). Verified on station_rush dense frame, matches reference pattern.
 - 2026-09-24: color fix from crop diagnosis (sky contaminated full-width bands). Now central-region sampling + strict achromatic first (white V>140) + top/bottom split. Panels anchor above boxes, compact 2-line mode when crowded.
 - 2026-09-24: part-based bodies per research (head/torso/legs rigid split). Measured color via k-means k=2 on 40px central crops, swatch + hex + name in panel, cached per track every 15 frames (~12ms each, amortized ~16ms/frame at 20 tracks). Verified white/blue/black read true.
+- 2026-09-24: color deep dive (DeepMAR/RAP parts, algolia bg+skin rejection, IQR median, Lab naming). Rebuilt engine: k=3 shirt+trouser+background, border-bg + skin rejection, IQR-clean median, HSV-sector naming with pink/brown/maroon, 0.45 dominance gate (unknown beats wrong). Calibrated on station reds/whites/beiges. Seated overlapping rows still partial (documented hard case).
+- 2026-09-24: Indian CCTV tests (station 4451f 37 IDs peak 9, temple 1799f 543 IDs peak 17). README shots replaced with Indian footage. Demo video re-recorded with part boxes.
 - (add here with date)

@@ -21,43 +21,39 @@ Same idea as advanced camera systems used abroad, but built privacy first: opt i
 
 ## What is left
 - [ ] Team leader name on slide 1, then re export PDF and upload to portal (needs: one name)
-- [ ] Dense crowd test with many people (our webcam tests are single person so far)
+- [x] Dense crowd test with many people (done: Indian station plus temple plus traffic clips, see Crowd tests)
 - [ ] Long gap body matching: our face file covers cross camera identity, body only matching past 6 seconds is still open
 - [ ] Stranger grouping polish: strangers share one file today, split them if time allows
 - [ ] Demo video: record the wall during a walk through plus a face search moment
 - [ ] Optional speedups: TensorRT export, smaller input size, ONNX runtime tuning (works fine without these)
 
 ## Crowd tests (real footage, our tracker)
-We ran the live tracker end to end on three public 720p crowd clips. Same code as the wall, no tuning per clip.
+We ran the live tracker end to end on real crowd clips, including Indian railway station and temple footage. Same code as the wall, no tuning per clip.
 
 | Clip | Frames | Speed | People at once (peak) | Total IDs seen |
 |---|---|---|---|---|
-| Grand Central station | 278 | 29.6 FPS | 20 | 152 |
-| Rush hour platform | 260 | 35.4 FPS | 15 | 207 |
-| Shopping street | 456 | 38.1 FPS | 25 | 167 |
+| Indian railway station | 4451 | 27 to 29 FPS | 9 | 37 |
+| Kumbh temple area | 1799 | 29 to 33 FPS | 17 | 543 |
 | City traffic (people plus vehicles) | 924 | 49 to 55 FPS | 23 | 226 people, 67 vehicles (cars, bikes, trucks, bus) |
 
-Crowds plus vehicles are tracked together. People get green boxes with clothing color panels, vehicles get blue boxes with type plus direction panels. Number plates are not read yet, that is listed below.
+Crowds plus vehicles are tracked together. Every person gets head, torso and legs boxes, each part measured for its real color with a swatch plus hex in the panel. Vehicles get blue boxes with type plus direction panels. Number plates are not read yet, that is listed below.
 
 https://github.com/shounakjoshi88-a11y/raksha-crowd-safety-hackathon/blob/main/docs/demo/tracking_demo.mp4
 
-*Watch: 15 seconds of live tracking on street traffic. Every box carries its file panel.*
+*Watch: live tracking on street traffic. Every box carries its file panel.*
+
+![Indian station tracking](docs/demo/india_station.jpg)
+*Indian railway station: part boxes on every person, true colors (white shirts read white, red saris read red).*
+
+![Temple tracking](docs/demo/india_temple.jpg)
+*Temple crowd: 17 tracked at once with file panels.*
 
 ![Traffic tracking](docs/demo/traffic.jpg)
 *Street traffic: people plus cars, bikes and trucks tracked together.*
 
-Honest note: total IDs are higher than real people because IDs sometimes restart in very dense scenes (known ByteTrack tradeoff without appearance matching). Peak simultaneous count is the solid number. Face files fix identity across cameras regardless.
+Honest note: total IDs are higher than real people because IDs sometimes restart in very dense scenes (known ByteTrack tradeoff without appearance matching). Peak simultaneous count is the solid number. Colors read true on clear views, seated overlapping rows can still misread (documented hard case in attribute research), and weak guesses are dropped instead of shown. Face files fix identity across cameras regardless.
 
-![Grand Central tracking](docs/demo/grand_central.jpg)
-*Grand Central: stable IDs through the concourse crowd.*
-
-![Rush hour tracking](docs/demo/station_rush.jpg)
-*Dense platform: 15 tracked at once at 35 FPS.*
-
-![Street tracking](docs/demo/street_walk.jpg)
-*Shopping street: 25 tracked at once, IDs hold along the walk.*
-
-Test clips stay on our machines only (28 MB). Rerun anytime with `python scripts/test_clips.py`.
+Test clips stay on our machines only. Rerun anytime with `python scripts/test_clips.py` or `python scripts/test_india.py`.
 
 ## How to run it
 ```powershell
