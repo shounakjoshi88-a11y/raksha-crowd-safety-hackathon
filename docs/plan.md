@@ -18,21 +18,23 @@
 - Acceptance: `python scripts/smoke_env.py` prints GPU true + versions + 1 detect + 1 embed.
 - Cold numbers: torch 2.14.0+cu130 CUDA True (RTX 4050). YOLOv8s first-run 2857ms (warmup incl), 1 person. buffalo_s 438ms first-run, 1 face, emb (512,), age+gender OK.
 
-## Phase 1: Live tracking wall [~] (ingest + tracker + FPS done 2026-09-23)
+## Phase 1: Live tracking wall [x] (done 2026-09-24)
 - [x] `raksha/vision/ingest.py`: webcam + video file + RTSP sources, 720p, frame-skip 2
 - [x] `raksha/vision/tracker.py`: YOLOv8s + `track(persist=True, tracker=bytetrack.yaml)`, per-stream instances
-- [x] Warm FPS measured: **30.3 FPS** on RTX 4050 (120 frames, 1 stable ID, `scripts/bench_track.py`)
+- [x] Warm FPS measured: **30.3 FPS** bench / **14.2 FPS** full wall w/ overlay + save (`scripts/bench_track.py`, `scripts/live.py`)
 - [x] `raksha/vision/zones.py`: polygons + per-zone counts + dwell timers (feet-point test)
-- [ ] Wire zones into live loop + draw trails on canvas
-- [ ] Test clips: record 2 crowd clips (webcam + public test video), note FPS GPU vs CPU
+- [x] `scripts/live.py`: IDs + trails + zone panel + FPS + save-to-file + frame cap; wall_test.mp4 verified with overlay
+- [ ] Crowd clip test (multi-person): pending, needs dense test video
 - Acceptance: 2 sources tracked live, IDs stable through short occlusion, FPS logged.
 
-## Phase 2: Face dossier, one person one file [ ]
-- [ ] `raksha/vision/faces.py`: buffalo_s FaceAnalysis, ctx_id=0, det_size 640, thr 0.5
-- [ ] Enroll script: 20 frontal faces → Faiss IndexFlatIP + sidecar JSON (name, age, gender, photo)
-- [ ] Live match: cosine >= 0.40 → identity, else `unknown-<track>`; temporal smoothing (3-frame vote)
-- [ ] Best-snapshot gate: blur (Laplacian) + yaw<45 + eye-dist>25px; keep top-3 per track
-- [ ] Person card UI data: `raksha/vision/dossier.py` (globalID, trackIDs, snapshots, trajectory, dwell, flags)
+## Phase 2: Face dossier, one person one file [~] (engine + enroll + match + card done 2026-09-24)
+- [x] `raksha/vision/faces.py`: buffalo_s FaceAnalysis, ctx_id=0, det_size 640, thr 0.5 + blur/size gate
+- [x] `scripts/enroll.py`: Demo01 enrolled, 3 shots, blur 88-122, gallery/gallery.faiss+json (LOCAL ONLY, never push)
+- [x] `raksha/vision/gallery.py`: Faiss IndexFlatIP cosine, thr 0.40, save/load
+- [x] Live match `scripts/match_live.py`: 3-frame vote smoothing → Demo01 card, dwell 7.7s
+- [x] `raksha/vision/dossier.py`: gid, tracks, trail, dwell, flags, card()
+- [ ] Save best snapshot crops to disk per dossier (currently counted, not written)
+- [ ] Stranger clustering polish (currently single stranger dossier)
 - Acceptance: enrolled face walks in → card pops <0.5s, unknowns clustered not spammed.
 
 ## Phase 3: Cross-camera ReID + global ID [ ]
