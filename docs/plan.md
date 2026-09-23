@@ -24,7 +24,7 @@
 - [x] Warm FPS measured: **30.3 FPS** bench / **14.2 FPS** full wall w/ overlay + save (`scripts/bench_track.py`, `scripts/live.py`)
 - [x] `raksha/vision/zones.py`: polygons + per-zone counts + dwell timers (feet-point test)
 - [x] `scripts/live.py`: IDs + trails + zone panel + FPS + save-to-file + frame cap; wall_test.mp4 verified with overlay
-- [ ] Crowd clip test (multi-person): pending, needs dense test video
+- [x] Crowd clip test: 3 public 720p clips (Grand Central 278f, station rush 260f, street 456f). Peaks 20/15/25 simultaneous, 29-38 FPS. IDs inflate by switches in dense scenes, logged honestly. Shots in README.
 - Acceptance: 2 sources tracked live, IDs stable through short occlusion, FPS logged.
 
 ## Phase 2: Face dossier, one person one file [x] (done 2026-09-24)
