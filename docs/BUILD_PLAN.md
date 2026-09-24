@@ -54,8 +54,16 @@ Calibration: 4+ measured ground points per fixed chokepoint view, surveyed once.
 - **M4 fusion+actuation**: multi-zone JSON → venue graph → wall mock with WATCH/RED + upstream-diversion rule (e.g. Gate B pressure → open Gate A overflow). Exit: end-to-end on recorded clips with HITL confirm step.
 - **M5 edge**: ONNX→TRT export, per-camera node budget (density + DIS) measured on Jetson-class hardware — real numbers replace estimates only then.
 
-## 5. Risks (say them before a judge does)
-- No runnable LCDnet/ShuffleCount/PGCNet code found — lightweight path is MobileCount-port or custom pruning, not a download.
+## 5. Deployment realities (Q&A answers, ready)
+- Connectivity at outdoor mela grounds: edge boxes link to the venue server over
+  site LAN (Kumbh 2025 laid fibre to its servers) with 4G/5G failover; boxes buffer
+  locally and sync on reconnect, so a network drop delays the wall, never the edge.
+- Venue-server redundancy: hot-standby pair per venue; edge boxes keep alerting
+  locally on last-known thresholds if the server is unreachable.
+- "City control" escalation tier is a target integration (protocol TBD in pilot),
+  not an assumed existing capability.
+
+## 6. Risks (say them before a judge does)- No runnable LCDnet/ShuffleCount/PGCNet code found — lightweight path is MobileCount-port or custom pruning, not a download.
 - No density-in-DeepStream precedent — integration risk, prototype on plain TensorRT first.
 - Self-calibration errors hit 16% height / 50% distance far-field — metric alarms only on surveyed views.
 - Precursor labels don't exist publicly — we annotate our own; small-data risk.
