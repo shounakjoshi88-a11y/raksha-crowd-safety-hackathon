@@ -93,7 +93,10 @@ clips + Helbing pressure thresholds.
   with local peaks 9/m²; speed ~18 m/min at 6/m²; control lost ≥7/m².
 - Johansson et al. 2008 (https://ar5iv.labs.arxiv.org/html/0810.4590): **crowd
   pressure p = ρ·Var(V)**; "density, speed, flow alone are NOT good criticality
-  indicators." Turbulence onset ≈ 0.02/s² (Medium).
+  indicators." Turbulence onset ≈ 0.02/s² (Medium). UNIT CAVEAT (deck-safe rule):
+  the papers plot "Pressure (1/s²)" but density is persons/m², so a live units
+  check gives persons/s² — never quote the threshold with units on a slide; call it
+  the literature warning-line value, shown crossing before turbulence in Hajj 2006.
 - Fruin: crowd ~fluid mass at **7/m²** (shockwaves throw people 3 m+); serious
   crush risk **>4/m²**; flow peaks then drops at **2–3/m²**.
   https://www.gkstill.com/Support/crowd-flow/fruin/Fruin1.html
