@@ -57,6 +57,15 @@
 - Acceptance: dense test frame → RED + alert entry with snapshot.
 
 ## Local evidence store [x] (done 2026-09-24)
+
+## Control room screens [x] (done 2026-09-24)
+- [x] Storage settings page: native folder picker, retention days, full vs alert-clips record mode (`settings.html`, `/api/browse`, `/api/config`)
+- [x] Threshold tuning per venue: warn/critical/density-full, live reload every 60 frames, no restart
+- [x] Handoff export: date-range zip of alerts + snapshots + segments (`/api/export`)
+- [x] Alert detail actions: acknowledge / false alarm / escalate with audit trail, buttons on wall
+- [x] SQLite thread fix: shared connection + RLock (FastAPI threadpool vs vision loop)
+- [ ] Camera management: add-camera flow, polygon zone editor, per-feed enable (next)
+- [ ] Venue map view with floor-plan upload + risk pins (next)
 - [x] `raksha/vision/store.py`: SQLite persons/tracks/snapshots/alerts/video_segments/audit, hash chain verify, purge rows+files
 - [x] `raksha/vision/record.py`: rotating 60s wall segments
 - [x] app.py wired: gallery migration at boot, per-frame tracks, dossier+snapshot rows, level-transition alerts, segment register, db counts in /api/state

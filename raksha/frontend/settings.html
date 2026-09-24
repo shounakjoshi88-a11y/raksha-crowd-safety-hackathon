@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raksha Settings</title>
+<style>
+  :root {
+    --bg: #020617; --primary: #0F172A; --card: #0E1223; --muted: #1A1E2F;
+    --muted-fg: #94A3B8; --fg: #F8FAFC; --border: #334155; --accent: #22C55E;
+    --danger: #EF4444; --info: #38BDF8; --radius: 10px;
+    --font-ui: "Fira Sans", "Segoe UI", Calibri, Arial, sans-serif;
+    --font-data: "Fira Code", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+  .cmdbar { display: flex; align-items: center; gap: 14px; padding: 10px 24px; background: var(--primary); border-bottom: 1px solid var(--border); }
+  .cmdbar h1 { font-size: 19px; letter-spacing: 1px; }
+  .cmdbar h1 span { color: var(--accent); font-weight: 300; }
+  .cmdbar a { color: var(--info); font-size: 14px; margin-left: auto; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 24px; }
+  h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 22px 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted-fg); margin: 12px 0 4px; letter-spacing: .5px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], input[type=number], select { width: 100%; background: var(--muted); border: 1px solid var(--border);
+    color: var(--fg); border-radius: 8px; padding: 9px 12px; font-size: 15px; font-family: var(--font-data); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btnrow { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button { background: var(--accent); color: #04120a; border: 0; border-radius: 8px; padding: 10px 18px;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); }
+  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+  button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .hint { font-size: 13px; color: var(--muted-fg); margin-top: 6px; }
+  #msg { position: sticky; top: 0; padding: 10px 24px; font-size: 14px; display: none; }
+  #msg.ok { display: block; background: #052e16; border-bottom: 1px solid var(--accent); }
+  #msg.err { display: block; background: #3d0a12; border-bottom: 1px solid var(--danger); }
+  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div id="msg" role="status"></div>
+<header class="cmdbar">
+  <h1>RAKSHA <span>Settings</span></h1>
+  <a href="/wall.html">&larr; Back to wall</a>
+</header>
+<main>
+  <h2>STORAGE (OFFLINE, THIS MACHINE ONLY)</h2>
+  <div class="card">
+    <label for="data_dir">Data folder (video, snapshots, database)</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="data_dir" style="flex:1">
+      <button type="button" class="ghost" id="browse">Browse...</button>
+    </div>
+    <div class="hint">Native folder picker. Applies on next restart. Nothing ever uploads anywhere.</div>
+    <label for="retention_days">Auto-delete after (days)</label>
+    <input type="number" id="retention_days" min="1" max="365">
+    <label for="record_mode">Recording mode</label>
+    <select id="record_mode">
+      <option value="full">Full video (everything, more disk)</option>
+      <option value="clips">Alert clips only (risk moments, less disk)</option>
+    </select>
+    <div class="btnrow"><button type="button" id="saveStorage">Save storage</button></div>
+  </div>
+  <h2>RISK THRESHOLDS (TUNE PER VENUE)</h2>
+  <div class="card">
+    <div class="row">
+      <div><label for="warn_level">Yellow at risk above</label><input type="number" id="warn_level" step="0.05" min="0" max="1"></div>
+      <div><label for="critical_level">Red at risk above</label><input type="number" id="critical_level" step="0.05" min="0" max="1.5"></div>
+    </div>
+    <label for="density_full">People per m2 that counts as full (1.0)</label>
+    <input type="number" id="density_full" step="0.5" min="1" max="12">
+    <div class="hint">Tighter venue: lower numbers. Open ground: higher. Applies instantly, no restart.</div>
+    <div class="btnrow"><button type="button" id="saveRisk">Save thresholds</button></div>
+  </div>
+  <h2>HANDOFF EXPORT</h2>
+  <div class="card">
+    <label for="expday">Day to export (YYYY-MM-DD)</label>
+    <input type="text" id="expday" placeholder="2026-09-24">
+    <div class="btnrow"><button type="button" id="doexport">Download zip</button></div>
+    <div class="hint">Zip holds that day's alerts plus snapshots plus video segments, with an alerts.json index.</div>
+  </div>
+  <h2>DANGER ZONE</h2>
+  <div class="card">
+    <div class="btnrow"><button type="button" class="danger" id="purge">Delete everything older than retention now</button></div>
+    <div class="hint">Runs the same purge the backend runs at boot. Deleted files cannot be recovered.</div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+function msg(t, ok) { const m = $('msg'); m.textContent = t; m.className = ok ? 'ok' : 'err'; setTimeout(() => m.className = '', 4000); }
+async function load() {
+  try {
+    const c = await (await fetch('/api/config')).json();
+    for (const k of ['data_dir', 'retention_days', 'record_mode', 'warn_level', 'critical_level', 'density_full'])
+      if ($(k) && c[k] !== undefined) $(k).value = c[k];
+  } catch (e) { msg('Backend unreachable. Start it with: python raksha/backend/app.py', false); }
+}
+async function save(keys) {
+  const body = {};
+  keys.forEach(k => body[k] = $(k).value);
+  const r = await fetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  msg(r.ok ? 'Saved.' : 'Save failed.', r.ok);
+}
+$('saveStorage').onclick = () => save(['data_dir', 'retention_days', 'record_mode']);
+$('saveRisk').onclick = () => save(['warn_level', 'critical_level', 'density_full']);
+$('browse').onclick = async () => {
+  const r = await (await fetch('/api/browse', { method: 'POST' })).json();
+  if (r.path) { $('data_dir').value = r.path; msg('Folder picked. Save storage, then restart backend.', true); }
+  else if (r.error) msg('Picker failed: ' + r.error, false);
+};
+$('doexport').onclick = () => { window.location = '/api/export?day=' + encodeURIComponent($('expday').value); };
+$('purge').onclick = async () => {
+  if (!confirm('Delete everything older than retention? Cannot be undone.')) return;
+  const r = await fetch('/api/purge', { method: 'POST' });
+  const j = await r.json();
+  msg(r.ok ? 'Purged: ' + JSON.stringify(j.deleted) : 'Purge failed.', r.ok);
+};
+load();
+</script>
+</body>
+</html>

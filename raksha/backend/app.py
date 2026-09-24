@@ -7,7 +7,7 @@ from collections import deque
 import cv2
 sys.path.insert(0, "D:/Q_project")
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -26,6 +26,7 @@ from raksha.vision.record import SegmentWriter
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 VID_DIR = "D:/Q_project/gallery/video"
 DB_PATH = "D:/Q_project/gallery/raksha.db"
+DB = store.connect(DB_PATH)
 
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
@@ -47,7 +48,12 @@ def vision_loop(src):
     except Exception:
         gal, face_on = Gallery(), False
     DB = store.connect(DB_PATH)
-    store.purge(DB, days=7)
+    cfg = store.get_config(DB)
+    RET_DAYS = int(cfg.get("retention_days", 7))
+    WARN, CRIT = float(cfg.get("warn_level", 0.4)), float(cfg.get("critical_level", 0.6))
+    FULL = float(cfg.get("density_full", 5.0))
+    REC_MODE = cfg.get("record_mode", "full")
+    store.purge(DB, days=RET_DAYS)
     seen = set()
     for _n, _m in zip(gal.names, gal.metas):
         if _n not in seen:
@@ -71,7 +77,8 @@ def vision_loop(src):
         persons = [d for d in dets if d["cls"] == 0]
         vehicles = [d for d in dets if d["cls"] != 0]
         zc = zones.count(persons, f.shape)
-        br = brain.update(f, sum(z["count"] for z in zc.values()))
+        br = brain.update(f, sum(z["count"] for z in zc.values()),
+                          warn=WARN, critical=CRIT, full=FULL)
         H, W = f.shape[:2]
         zone_of, dwell_of = {}, {}
         for zname, z in zc.items():
@@ -130,9 +137,10 @@ def vision_loop(src):
             fps = n / (time.time() - t0)
         ok, buf = cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 80])
         risk_hist.append(br["risk"])
-        done_seg = seg.write(f)
-        if done_seg:
-            store.add_segment(DB, *done_seg)
+        if REC_MODE == "full" or br["level"] != "green":
+            done_seg = seg.write(f)
+            if done_seg:
+                store.add_segment(DB, *done_seg)
         if br["level"] != "green" and br["level"] != last_db_level:
             top_zone = max(zc.items(), key=lambda kv: kv[1]["count"])[0] if zc else ""
             store.add_alert(DB, br["level"], br["risk"], br["density"], top_zone)
@@ -148,6 +156,13 @@ def vision_loop(src):
         if n % 60 == 0:
             with lock:
                 state["db"] = store.stats(DB)
+            try:
+                _cfg = store.get_config(DB)
+                WARN, CRIT = float(_cfg.get("warn_level", WARN)), float(_cfg.get("critical_level", CRIT))
+                FULL = float(_cfg.get("density_full", FULL))
+                REC_MODE = _cfg.get("record_mode", REC_MODE)
+            except Exception:
+                pass
 
 
 app = FastAPI(title="Raksha Command API")
@@ -162,6 +177,66 @@ def health():
 def api_state():
     with lock:
         return JSONResponse({k: v for k, v in state.items() if k != "jpg"})
+
+
+@app.get("/api/config")
+def get_cfg():
+    return store.get_config(DB)
+
+
+@app.put("/api/config")
+def put_cfg(payload: dict):
+    allowed = {"data_dir", "retention_days", "warn_level", "critical_level", "record_mode", "density_full"}
+    clean = {k: str(v) for k, v in payload.items() if k in allowed}
+    store.set_config(DB, clean)
+    return {"ok": True, "saved": clean,
+            "note": "thresholds apply live; data_dir and retention apply on restart"}
+
+
+@app.post("/api/browse")
+def browse():
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        path = filedialog.askdirectory(title="Choose Raksha data folder")
+        root.destroy()
+        return {"path": path or ""}
+    except Exception as e:
+        return {"path": "", "error": str(e)}
+
+
+@app.post("/api/alerts/{alert_id}/ack")
+def ack(alert_id: int, payload: dict):
+    store.ack_alert(DB, alert_id, payload.get("status", "acknowledged"),
+                    payload.get("by", "operator"), payload.get("note", ""))
+    return {"ok": True}
+
+
+@app.get("/api/alerts")
+def alerts():
+    rows = DB.execute("SELECT id, level, risk, density, zone, time, status, ack_by FROM alerts ORDER BY id DESC LIMIT 50").fetchall()
+    return {"alerts": [dict(zip(("id", "level", "risk", "density", "zone", "time", "status", "ack_by"), r)) for r in rows]}
+
+
+@app.post("/api/purge")
+def purge_now():
+    cfg = store.get_config(DB)
+    counts = store.purge(DB, days=int(cfg.get("retention_days", 7)))
+    return {"ok": True, "deleted": counts}
+
+
+@app.get("/api/export")
+def export(day: str):
+    import datetime
+    datetime.datetime.strptime(day, "%Y-%m-%d")
+    cfg = store.get_config(DB)
+    out = os.path.join(cfg.get("data_dir", "D:/Q_project/gallery"), "exports", f"raksha-{day}.zip")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    return FileResponse(store.export_range(DB, cfg.get("data_dir", "D:/Q_project/gallery"), day, out),
+                        filename=f"raksha-{day}.zip")
 
 
 @app.get("/stream.mjpeg")

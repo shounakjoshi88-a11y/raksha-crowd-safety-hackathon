@@ -9,7 +9,20 @@ import hashlib
 import json
 import os
 import sqlite3
+import threading
 import time
+
+_LOCK = threading.RLock()  # reentrant: purge/add_alert call _audit inside
+
+
+def _locked(fn):
+    import functools
+
+    @functools.wraps(fn)
+    def w(*a, **k):
+        with _LOCK:
+            return fn(*a, **k)
+    return w
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS persons(
@@ -30,17 +43,79 @@ CREATE TABLE IF NOT EXISTS video_segments(
 CREATE TABLE IF NOT EXISTS audit(
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, actor TEXT,
   action TEXT, details TEXT, prev_hash TEXT, hash TEXT);
+CREATE TABLE IF NOT EXISTS config(
+  key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS cameras(
+  id TEXT PRIMARY KEY, name TEXT, zone TEXT, source TEXT,
+  enabled INTEGER DEFAULT 1, poly TEXT);
 """
 
 
 def connect(path):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    db = sqlite3.connect(path)
+    db = sqlite3.connect(path, check_same_thread=False)
     db.executescript(SCHEMA)
+    for col, typ in (("status", "TEXT DEFAULT 'open'"), ("ack_by", "TEXT"),
+                     ("ack_time", "REAL"), ("note", "TEXT")):
+        try:
+            db.execute(f"ALTER TABLE alerts ADD COLUMN {col} {typ}")
+        except sqlite3.OperationalError:
+            pass
+    defaults = {"data_dir": "D:/Q_project/gallery", "retention_days": "7",
+                "warn_level": "0.4", "critical_level": "0.6",
+                "record_mode": "full", "density_full": "5.0"}
+    for k, v in defaults.items():
+        db.execute("INSERT OR IGNORE INTO config(key, value) VALUES(?,?)", (k, v))
     db.commit()
     return db
 
 
+@_locked
+def get_config(db):
+    return {k: v for k, v in db.execute("SELECT key, value FROM config").fetchall()}
+
+
+@_locked
+def set_config(db, mapping):
+    for k, v in mapping.items():
+        db.execute("INSERT INTO config(key, value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                   (k, str(v)))
+    _audit(db, "config", json.dumps(mapping))
+    db.commit()
+
+
+@_locked
+def ack_alert(db, alert_id, status, by="operator", note=""):
+    assert status in ("acknowledged", "false_alarm", "escalated")
+    db.execute("UPDATE alerts SET status=?, ack_by=?, ack_time=?, note=? WHERE id=?",
+               (status, by, time.time(), note, alert_id))
+    _audit(db, "alert_" + status, json.dumps({"id": alert_id, "by": by}))
+    db.commit()
+
+
+@_locked
+def export_range(db, data_dir, day, out_path):
+    """Zip one day (YYYY-MM-DD) of alerts + snapshots + segments for handoff."""
+    import zipfile
+    start = time.mktime(time.strptime(day, "%Y-%m-%d"))
+    rows = db.execute("SELECT id, level, risk, density, zone, time, status FROM alerts WHERE time>=? AND time<?",
+                      (start, start + 86400)).fetchall()
+    snaps = db.execute("SELECT path FROM snapshots WHERE taken>=? AND taken<?",
+                       (start, start + 86400)).fetchall()
+    segs = db.execute("SELECT path FROM video_segments WHERE started>=? AND started<?",
+                      (start, start + 86400)).fetchall()
+    with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("alerts.json", json.dumps(
+            [dict(zip(("id", "level", "risk", "density", "zone", "time", "status"), r)) for r in rows], indent=1))
+        for (p,) in snaps + segs:
+            if p and os.path.isfile(p):
+                z.write(p, os.path.relpath(p, data_dir))
+    _audit(db, "export", json.dumps({"day": day, "out": out_path}))
+    db.commit()
+    return out_path
+
+
+@_locked
 def _audit(db, action, details="", actor="system"):
     prev = db.execute("SELECT hash FROM audit ORDER BY id DESC LIMIT 1").fetchone()
     prev_hash = prev[0] if prev else "GENESIS"
@@ -51,6 +126,7 @@ def _audit(db, action, details="", actor="system"):
     db.commit()
 
 
+@_locked
 def upsert_person(db, gid, name=None, age=None, gender=None):
     now = time.time()
     row = db.execute("SELECT gid FROM persons WHERE gid=?", (gid,)).fetchone()
@@ -63,6 +139,7 @@ def upsert_person(db, gid, name=None, age=None, gender=None):
     db.commit()
 
 
+@_locked
 def add_track(db, gid, track_id, camera="cam0"):
     now = time.time()
     row = db.execute("SELECT id FROM tracks WHERE gid=? AND track_id=? AND camera=? AND ended IS NULL",
@@ -73,18 +150,21 @@ def add_track(db, gid, track_id, camera="cam0"):
         db.commit()
 
 
+@_locked
 def close_track(db, gid, track_id, camera="cam0"):
     db.execute("UPDATE tracks SET ended=? WHERE gid=? AND track_id=? AND camera=? AND ended IS NULL",
                (time.time(), gid, track_id, camera))
     db.commit()
 
 
+@_locked
 def add_snapshot(db, gid, path, blur=0.0):
     db.execute("INSERT INTO snapshots(gid, path, taken, blur) VALUES(?,?,?,?)",
                (gid, path, time.time(), blur))
     db.commit()
 
 
+@_locked
 def add_alert(db, level, risk, density, zone="", snapshot_path=""):
     db.execute("INSERT INTO alerts(level, risk, density, zone, time, snapshot_path) VALUES(?,?,?,?,?,?)",
                (level, risk, density, zone, time.time(), snapshot_path))
@@ -92,6 +172,7 @@ def add_alert(db, level, risk, density, zone="", snapshot_path=""):
     db.commit()
 
 
+@_locked
 def add_segment(db, path, started, ended):
     try:
         size = os.path.getsize(path)
@@ -102,6 +183,7 @@ def add_segment(db, path, started, ended):
     db.commit()
 
 
+@_locked
 def purge(db, days=7):
     """Delete records AND files older than N days. Returns counts."""
     cutoff = time.time() - days * 86400
@@ -121,6 +203,7 @@ def purge(db, days=7):
     return counts
 
 
+@_locked
 def stats(db):
     out = {}
     for t in ("persons", "tracks", "snapshots", "alerts", "video_segments", "audit"):
@@ -128,6 +211,7 @@ def stats(db):
     return out
 
 
+@_locked
 def verify_chain(db):
     """Returns True if audit hash chain is intact."""
     rows = db.execute("SELECT ts, actor, action, details, prev_hash, hash FROM audit ORDER BY id").fetchall()

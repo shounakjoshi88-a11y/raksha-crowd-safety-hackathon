@@ -120,6 +120,7 @@
   </div>
   <div class="status-pill ok" id="pill"><span class="dot"></span><span id="pilltxt">NOMINAL</span></div>
   <div class="spacer"></div>
+  <div class="metric"><a href="/settings.html" style="color:var(--info)">Settings</a></div>
   <div class="metric">FPS <b id="mFps">--</b></div>
   <div class="metric">TRACKED <b id="mTrk">--</b></div>
   <div class="metric">FACE <b id="mFace">--</b></div>
@@ -254,11 +255,23 @@ async function tick(soft) {
     }).join('') : (ds.length ? `<div class="empty">No match for search.</div>`
       : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span style="font-family:var(--font-data)">python scripts/enroll.py YourName 5</span></div>`);
     if ((s.alerts || []).length > alertsSeen) alertsSeen = s.alerts.length;
-    $('alerts').innerHTML = (s.alerts || []).slice().reverse().map(al =>
+    let dbAlerts = [];
+    try { dbAlerts = (await (await fetch('/api/alerts')).json()).alerts || []; } catch (e) { /* db warming */ }
+    $('alerts').innerHTML = dbAlerts.map(al =>
       `<div class="card alert-item ${al.level === 'yellow' ? 'yellow' : ''}">`
       + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>`
-      + `<div><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density}<br><time>${new Date(al.time * 1000).toLocaleTimeString()}</time></div></div>`).join('')
+      + `<div><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density} [${al.zone || '-'}]`
+      + `<br><time>${new Date(al.time * 1000).toLocaleTimeString()}</time> <span class="muted">| ${al.status || 'open'}${al.ack_by ? ' by ' + al.ack_by : ''}</span>`
+      + `<br><button data-ack="${al.id}" data-s="acknowledged">Acknowledge</button> `
+      + `<button data-ack="${al.id}" data-s="false_alarm">False alarm</button> `
+      + `<button data-ack="${al.id}" data-s="escalated">Escalate</button></div></div>`).join('')
       || `<div class="empty"><b>All quiet.</b> Alerts appear here the second risk turns yellow.</div>`;
+    document.querySelectorAll('[data-ack]').forEach(btn => btn.addEventListener('click', async () => {
+      await fetch(`/api/alerts/${btn.dataset.ack}/ack`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: btn.dataset.s, by: 'operator' }) });
+      tick(true);
+    }));
     $('hFps').textContent = s.fps ?? '--';
     $('hFace').textContent = s.face_on ? 'GPU' : 'OFF';
     $('hGal').textContent = s.gal_size ?? ds.length;

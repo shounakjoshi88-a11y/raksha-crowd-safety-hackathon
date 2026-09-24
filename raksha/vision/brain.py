@@ -11,7 +11,7 @@ class CrowdBrain:
         self.alerts = []
         self.area = area_m2
 
-    def update(self, frame, count):
+    def update(self, frame, count, warn=0.4, critical=0.6, full=5.0):
         small = cv2.resize(frame, (320, 180))
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
         density = count / self.area
@@ -27,9 +27,9 @@ class CrowdBrain:
             i1 = int(np.argmax(hist))
             cf = float(min(hist[i1], hist[(i1 + 4) % 8]) / tot * 2)
         self.prev = gray
-        rho = float(np.clip(density / 5.0, 0, 1.5))
+        rho = float(np.clip(density / full, 0, 1.5))
         risk = float(np.clip(rho * still * (1 + cf), 0, 1.5))
-        level = "red" if risk > 0.6 else "yellow" if risk > 0.4 else "green"
+        level = "red" if risk > critical else "yellow" if risk > warn else "green"
         if level != "green":
             al = {"level": level, "risk": round(risk, 2),
                   "density": round(density, 2), "time": time.time()}
