@@ -96,11 +96,11 @@
 - 2026-09-24: color deep dive (DeepMAR/RAP parts, algolia bg+skin rejection, IQR median, Lab naming). Rebuilt engine: k=3 shirt+trouser+background, border-bg + skin rejection, IQR-clean median, HSV-sector naming with pink/brown/maroon, 0.45 dominance gate (unknown beats wrong). Calibrated on station reds/whites/beiges. Seated overlapping rows still partial (documented hard case).
 - 2026-09-24: Indian CCTV tests (station 4451f 37 IDs peak 9, temple 1799f 543 IDs peak 17). README shots replaced with Indian footage. Demo video re-recorded with part boxes.
 - 2026-09-24: color v2 from GitHub deep dive (DeepMAR/RAP parts, algolia bg+skin rejection, IQR median, HSV-sector naming). Gate 0.30, compact small-box rule (<130px ID tag only). Station whites/reds/beiges verified true. Seated overlap rows partial (documented hard case).
-## Control room UI v2 (done 2026-09-24)
-- [x] Reference sweep: all ui-refs (JetStream, AETHRA, ZCOOL, Genetec, 56 Milestone pages) + v2 haul (Verkada Command manual, Rhombus console footage/faces, HikCentral) + Inter self-hosted
+## Control room UI v2 (done 2026-09-24)- [x] Reference sweep: all ui-refs (JetStream, AETHRA, ZCOOL, Genetec, 56 Milestone pages) + v2 haul (Verkada Command manual, Rhombus console footage/faces, HikCentral) + Inter self-hosted
 - [x] DESIGN.md v2 spec: Inter UI type, icon rail, on-video tile chrome, divider rows, transport timeline, scale instrument, honest features only
 - [x] `raksha/frontend/`: `app.css` rewrite, `icons.svg` sprite (17 icons), `wall.html` rewrite (rail, overlay tile, risk scale, 5-min timeline with axis/bands/markers, alert filters, people grid, bell badge, snapshot/fullscreen/hold/shortcuts, staleness pill), `settings.html` rewrite (field grid, threshold preview, shortcuts ref), `index.html` redirect
 - [x] Backend: file-source EOF loop, state timestamp for stall detection, risk history 60s to 5min
 - [x] QA: 0 console errors, contrast all-pass (>=4.5), keyboard (tabs/arrows/1-3/f/h//), widths 1440/1024/768/390, forced yellow/red + ack flow, web-guidelines audit applied, live crowd verified 7-9 tracked
 - [ ] Multi-camera grid needs multi-source backend (single stream today); venue map view still next
+- 2026-09-24: real CCTV footage replaces stock clips (Wikimedia Commons): `assets/clips/station_concourse.webm` (Paris Saint-Lazare, static, 2min, peak 18 tracked, 850 IDs, 14.8 FPS) + `assets/clips/shibuya_crossing.webm` (Shibuya, static, 58s, dense walking). india_station.mp4 retired (static image with voiceover). test_clips.py harness updated. Deck v2 rebuilt visual-first (flowchart, native FPS chart, real screenshots) with anthropics pptx skill QA loop.
 - (add here with date)

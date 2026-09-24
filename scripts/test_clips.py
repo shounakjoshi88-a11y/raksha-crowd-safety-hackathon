@@ -4,7 +4,7 @@ import cv2
 sys.path.insert(0, "D:/Q_project")
 from raksha.vision.tracker import PersonTracker
 
-CLIPS = ["grand_central.mp4", "station_rush.mp4", "street_walk.ogv"]
+CLIPS = ["station_concourse.webm", "shibuya_crossing.webm", "india_temple.mp4"]
 os.makedirs("D:/Q_project/assets/shots", exist_ok=True)
 trk = PersonTracker()
 for name in CLIPS:
