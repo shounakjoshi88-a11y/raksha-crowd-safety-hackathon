@@ -5,6 +5,7 @@ measured color, hex plus name beside it. Crowded frames fall back to compact
 panels automatically.
 """
 import cv2
+import numpy as np
 
 BOX = (0, 229, 204)
 BOX_VEH = (255, 150, 0)
@@ -14,6 +15,27 @@ PANEL_FG = (240, 240, 240)
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FS, TH, PAD, LH = 0.45, 1, 5, 15
 SW = 12  # swatch square size
+BN_COL = {"red": (70, 70, 245), "yellow": (0, 200, 230)}  # BGR
+
+
+def draw_bottleneck(frame, poly, label, sev="yellow"):
+    """Highlight a zone polygon as a bottleneck: tinted fill, thick border, chip label."""
+    H, W = frame.shape[:2]
+    pts = (np.asarray(poly, dtype=float) * [W, H]).astype(np.int32)
+    col = BN_COL.get(sev, BN_COL["yellow"])
+    tint = frame.copy()
+    cv2.fillPoly(tint, [pts], col)
+    cv2.addWeighted(tint, 0.14, frame, 0.86, 0, frame)
+    cv2.polylines(frame, [pts], True, col, 3, cv2.LINE_AA)
+    fs, th = 0.6, 2
+    (tw, thh), _ = cv2.getTextSize(label, FONT, fs, th)
+    x = int(pts[:, 0].min()) + 8
+    y = int(pts[:, 1].min()) + 8
+    x = max(0, min(x, W - tw - 14))
+    y = max(thh + 10, min(y, H - 10))
+    cv2.rectangle(frame, (x - 5, y - thh - 7), (x + tw + 5, y + 7), (10, 10, 10), -1)
+    cv2.rectangle(frame, (x - 5, y - thh - 7), (x + tw + 5, y + 7), col, 1)
+    cv2.putText(frame, label, (x, y), FONT, fs, col, th, cv2.LINE_AA)
 
 
 def _text_row(frame, px, py, text, xoff=0):

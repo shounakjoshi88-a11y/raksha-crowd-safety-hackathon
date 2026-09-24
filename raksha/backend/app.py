@@ -19,7 +19,7 @@ from raksha.vision.gallery import Gallery
 from raksha.vision.dossier import Dossier
 from raksha.vision.brain import CrowdBrain
 from raksha.vision.attributes import top_color, bottom_color, direction, parts_info
-from raksha.vision.overlay import draw_track, draw_person
+from raksha.vision.overlay import draw_track, draw_person, draw_bottleneck
 from raksha.vision import store
 from raksha.vision.record import SegmentWriter
 
@@ -53,6 +53,7 @@ def vision_loop(src):
     WARN, CRIT = float(cfg.get("warn_level", 0.4)), float(cfg.get("critical_level", 0.6))
     FULL = float(cfg.get("density_full", 5.0))
     REC_MODE = cfg.get("record_mode", "full")
+    AREA = float(cfg.get("venue_area_m2", 50.0))
     store.purge(DB, days=RET_DAYS)
     seen = set()
     for _n, _m in zip(gal.names, gal.metas):
@@ -61,12 +62,12 @@ def vision_loop(src):
             seen.add(_n)
     store._audit(DB, "boot", "vision loop start")
     eng = FaceEngine() if face_on else None
-    brain = CrowdBrain()
+    brain = CrowdBrain(area_m2=AREA)
     seg = SegmentWriter(VID_DIR, seconds=60)
-    last_db_level = "green"
+    last_db_level, last_bn_sev = "green", "none"
     trails, votes, dossiers = {}, deque(maxlen=3), {}
     risk_hist, captures, pcache = deque(maxlen=300), deque(maxlen=20), {}
-    t0, n = time.time(), 0
+    t0, n, last_hist_t = time.time(), 0, 0.0
     fps = 0.0
     src_is_file = isinstance(src, str) and os.path.isfile(src)
     while True:
@@ -85,7 +86,8 @@ def vision_loop(src):
         vehicles = [d for d in dets if d["cls"] != 0]
         zc = zones.count(persons, f.shape)
         br = brain.update(f, sum(z["count"] for z in zc.values()),
-                          warn=WARN, critical=CRIT, full=FULL)
+                          warn=WARN, critical=CRIT, full=FULL,
+                          zones=zc, zone_polys=zones.zones)
         H, W = f.shape[:2]
         zone_of, dwell_of = {}, {}
         for zname, z in zc.items():
@@ -115,6 +117,18 @@ def vision_loop(src):
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
             dlbl, spd = direction(tr)
             draw_track(f, d, tr, [f"{dlbl} {spd}px/s"], compact=len(dets) > 12)
+        bn = br.get("bottleneck")
+        if bn:
+            draw_bottleneck(f, zones.zones.get(bn["zone"], [(0, 0), (1, 0), (1, 1), (0, 1)]),
+                            f"BOTTLENECK {bn['zone']} {bn['density']}/m2 "
+                            f"standing {bn['dwell_med']:.0f}s", bn["sev"])
+            if bn["sev"] != last_bn_sev:
+                if bn["sev"] in ("yellow", "red"):
+                    store.add_alert(DB, bn["sev"], bn["score"], bn["density"],
+                                    f"{bn['zone']} bottleneck")
+                last_bn_sev = bn["sev"]
+        elif last_bn_sev != "none":
+            last_bn_sev = "none"
         if eng and n % 12 == 0:
             for fc in eng.get_faces(f):
                 nm, sim, meta = gal.search(fc["embedding"])
@@ -143,19 +157,23 @@ def vision_loop(src):
         if n % 10 == 0:
             fps = n / (time.time() - t0)
         ok, buf = cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        risk_hist.append(br["risk"])
+        if time.time() - last_hist_t >= 1.0:
+            risk_hist.append((time.time(), br["risk"]))
+            last_hist_t = time.time()
         if REC_MODE == "full" or br["level"] != "green":
             done_seg = seg.write(f)
             if done_seg:
                 store.add_segment(DB, *done_seg)
         if br["level"] != "green" and br["level"] != last_db_level:
-            top_zone = max(zc.items(), key=lambda kv: kv[1]["count"])[0] if zc else ""
+            bn = br.get("bottleneck")
+            top_zone = bn["zone"] if bn else (
+                max(zc.items(), key=lambda kv: kv[1]["count"])[0] if zc else "")
             store.add_alert(DB, br["level"], br["risk"], br["density"], top_zone)
         if br["level"] != last_db_level:
             last_db_level = br["level"]
         with lock:
             state.update({"jpg": buf.tobytes() if ok else None, "dets": dets, "zones": zc,
-                          "brain": br, "risk_hist": list(risk_hist),
+                          "brain": br, "risk_hist": [[round(t, 1), r] for t, r in risk_hist],
                           "captures": list(captures), "t": time.time(),
                           "alerts": brain.alerts[-10:], "fps": round(fps, 1),
                           "face_on": face_on, "gal_size": gal.index.ntotal,
@@ -168,6 +186,7 @@ def vision_loop(src):
                 WARN, CRIT = float(_cfg.get("warn_level", WARN)), float(_cfg.get("critical_level", CRIT))
                 FULL = float(_cfg.get("density_full", FULL))
                 REC_MODE = _cfg.get("record_mode", REC_MODE)
+                brain.area = float(_cfg.get("venue_area_m2", brain.area))
             except Exception:
                 pass
 
@@ -193,7 +212,8 @@ def get_cfg():
 
 @app.put("/api/config")
 def put_cfg(payload: dict):
-    allowed = {"data_dir", "retention_days", "warn_level", "critical_level", "record_mode", "density_full"}
+    allowed = {"data_dir", "retention_days", "warn_level", "critical_level",
+               "record_mode", "density_full", "venue_area_m2"}
     clean = {k: str(v) for k, v in payload.items() if k in allowed}
     store.set_config(DB, clean)
     return {"ok": True, "saved": clean,

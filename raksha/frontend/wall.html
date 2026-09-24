@@ -70,6 +70,7 @@
             <div class="score-block">
               <div class="risk-score" id="risknum">--</div>
               <span class="chip open" id="risklvl"><span class="dot" aria-hidden="true"></span><span id="risklvltxt">Calm</span></span>
+              <div class="eta" id="etaTxt" hidden></div>
             </div>
             <div class="scale-block">
               <div class="scale" aria-hidden="true">
@@ -271,7 +272,7 @@ loadThresholds();
 const showRisk = $('laneRisk'), showMarks = $('laneMarks');
 showRisk.addEventListener('change', () => tick(true));
 showMarks.addEventListener('change', () => tick(true));
-let lastHist = [], lastAlerts = [];
+let lastHist = [], lastAlerts = [], lastSlope = 0;
 
 function segColor(v) {
   return v >= CRIT ? 'var(--crit)' : v >= WARN ? 'var(--watch)' : 'var(--chart)';
@@ -281,16 +282,14 @@ function drawTimeline() {
   const svg = $('tlsvg');
   const cw = Math.max(320, Math.round(svg.clientWidth || 600));
   svg.setAttribute('viewBox', `0 0 ${cw} 128`);
-  const W = cw, H = 128, padL = 32, padR = 12, padT = 24, padB = 20;
+  const W = cw, H = 128, padL = 32, padR = 12, padT = 24, padB = 20, PROJ = 46;
   const max = scaleMax();
-  const SPAN = 300, n = hist.length;
-  const stepX = (W - padL - padR) / (SPAN - 1);
-  const X = i => (W - padR) - (n - 1 - i) * stepX;
-  const Xr = age => (W - padR) - age * stepX;
+  const SPAN = 300, now = Date.now() / 1000;
+  const usableW = W - padL - padR - PROJ;
+  const pxS = usableW / SPAN;
+  const X = t => (W - padR - PROJ) - (now - t) * pxS;
   const Y = v => padT + (1 - Math.min(v, max) / max) * (H - padT - padB);
-  const now = Date.now() / 1000;
-  let s = `<rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${Y(WARN) - padT}" fill="none"/>`
-    + `<rect x="${padL}" y="${Y(CRIT)}" width="${W - padL - padR}" height="${Y(WARN) - Y(CRIT)}" fill="var(--watch)" opacity="0.08"/>`
+  let s = `<rect x="${padL}" y="${Y(CRIT)}" width="${W - padL - padR}" height="${Y(WARN) - Y(CRIT)}" fill="var(--watch)" opacity="0.08"/>`
     + `<rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${Y(CRIT) - padT}" fill="var(--crit)" opacity="0.10"/>`;
   const ylbl = (v, t) => `<text x="2" y="${(Y(v) + 3).toFixed(1)}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)">${t}</text>`;
   s += ylbl(max, max.toFixed(1));
@@ -303,19 +302,40 @@ function drawTimeline() {
     + `<line x1="${padL}" y1="${Y(CRIT)}" x2="${W - padR}" y2="${Y(CRIT)}" stroke="var(--crit)" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" opacity="0.7"/>`;
   const fmtAge = a => a < 90 ? `-${Math.round(a)}s` : `-${Math.floor(a / 60)}m${Math.round(a % 60) ? Math.round(a % 60) + 's' : ''}`;
   [0, 0.25, 0.5, 0.75].forEach(f => {
-    const a = SPAN * (1 - f), x = padL + (W - padL - padR) * f;
-    s += `<text x="${x.toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)" text-anchor="middle">${fmtAge(a)}</text>`;
+    const age = SPAN * (1 - f), x = padL + usableW * f;
+    s += `<text x="${x.toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)" text-anchor="middle">${fmtAge(age)}</text>`;
   });
-  s += `<text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--fg-muted)" font-family="var(--font-data)" text-anchor="end">Now</text>`;
-  if (showRisk.checked && n > 1) {
-    let area = `<path d="M${X(0).toFixed(1)},${Y(hist[0]).toFixed(1)}`;
-    for (let i = 1; i < n; i++) area += ` L${X(i).toFixed(1)},${Y(hist[i]).toFixed(1)}`;
-    area += ` L${X(n - 1).toFixed(1)},${Y(0).toFixed(1)} L${X(0).toFixed(1)},${Y(0).toFixed(1)} Z" fill="var(--chart)" opacity="0.16"/>`;
+  s += `<text x="${(W - padR - PROJ).toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--fg-muted)" font-family="var(--font-data)" text-anchor="middle">Now</text>`
+    + `<text x="${(W - padR).toFixed(1)}" y="${H - 6}" font-size="8.5" fill="var(--fg-dim)" font-family="var(--font-data)" text-anchor="end" opacity="0.8">next</text>`;
+  const pts = hist.filter(p => Array.isArray(p) && now - p[0] <= SPAN && now - p[0] >= 0);
+  if (showRisk.checked && pts.length > 1) {
+    let area = `<path d="M${X(pts[0][0]).toFixed(1)},${Y(pts[0][1]).toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) area += ` L${X(pts[i][0]).toFixed(1)},${Y(pts[i][1]).toFixed(1)}`;
+    area += ` L${X(pts[pts.length - 1][0]).toFixed(1)},${Y(0).toFixed(1)} L${X(pts[0][0]).toFixed(1)},${Y(0).toFixed(1)} Z" fill="var(--chart)" opacity="0.16"/>`;
     s += area;
-    for (let i = 1; i < n; i++) {
-      const c = segColor(Math.max(hist[i - 1], hist[i]));
-      s += `<line x1="${X(i - 1).toFixed(1)}" y1="${Y(hist[i - 1]).toFixed(1)}" x2="${X(i).toFixed(1)}" y2="${Y(hist[i]).toFixed(1)}" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    for (let i = 1; i < pts.length; i++) {
+      const c = segColor(Math.max(pts[i - 1][1], pts[i][1]));
+      s += `<line x1="${X(pts[i - 1][0]).toFixed(1)}" y1="${Y(pts[i - 1][1]).toFixed(1)}" x2="${X(pts[i][0]).toFixed(1)}" y2="${Y(pts[i][1]).toFixed(1)}" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
     }
+    const last = pts[pts.length - 1];
+    s += `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.5" fill="${segColor(last[1])}"/>`;
+    if (lastSlope > 0.002) {
+      const horizon = PROJ / pxS;
+      const rEnd = Math.min(max, last[1] + lastSlope * horizon);
+      const x0 = X(last[0]), y0 = Y(last[1]), x1 = W - padR, y1 = Y(rEnd);
+      s += `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke="${segColor(rEnd)}" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity="0.9"/>`
+        + `<circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="2.5" fill="none" stroke="${segColor(rEnd)}" stroke-width="1.5"/>`;
+    }
+  }
+  marks.forEach(al => {
+    const age = now - al.time;
+    if (age < 0 || age > SPAN) return;
+    const x = (X(al.time)).toFixed(1), y = padT - 9;
+    const c = al.level === 'red' ? 'var(--crit)' : 'var(--watch)';
+    s += `<g><rect x="${x - 4}" y="${y - 4}" width="8" height="8" transform="rotate(45 ${x} ${y})" fill="${c}"/><title>${al.level} ${ago(al.time)}</title></g>`;
+  });
+  $('tlsvg').innerHTML = s;
+}
     s += `<circle cx="${X(n - 1).toFixed(1)}" cy="${Y(hist[n - 1]).toFixed(1)}" r="3.5" fill="${segColor(hist[n - 1])}"/>`;
   }
   marks.forEach(al => {
@@ -362,13 +382,31 @@ async function tick(soft) {
     $('mTrk').textContent = (s.dets || []).length;
     $('mFace').textContent = s.face_on ? 'On' : 'Off';
     const banner = $('banner');
-    if (lvl !== 'green') {
-      banner.className = 'banner show ' + (lvl === 'red' ? 'red' : 'yellow');
-      const zs = Object.entries(s.zones || {}).sort((a, b) => b[1].count - a[1].count)[0];
-      $('bannertxt').textContent = lvl === 'red'
-        ? `Red surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people). Divert flow now.`
-        : `Yellow watch: risk ${b.risk}, density ${b.density}/m2. Keep eyes on ${zs ? zs[0] : 'zone'}.`;
+    const bn = b.bottleneck;
+    const zs = Object.entries(s.zones || {}).sort((a, b2) => b2[1].count - a[1].count)[0];
+    const bnHot = bn && bn.sev !== 'green';
+    if (lvl !== 'green' || bnHot) {
+      const redNow = lvl === 'red' || (bn && bn.sev === 'red');
+      banner.className = 'banner show ' + (redNow ? 'red' : 'yellow');
+      const parts = [];
+      if (lvl === 'red') parts.push(`Red surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people).`);
+      else if (lvl === 'yellow') parts.push(`Yellow watch: risk ${b.risk}, density ${b.density}/m2.`);
+      if (bnHot) parts.push(`Bottleneck at ${bn.zone}: ${bn.density}/m2, stopped ${bn.dwell_med}s.`);
+      if (b.trend === 'rising' && b.eta_crit_s != null) parts.push(`Critical in ~${Math.round(b.eta_crit_s)}s if trend holds.`);
+      else if (redNow) parts.push('Divert flow now.');
+      $('bannertxt').textContent = parts.join(' ');
     } else banner.className = 'banner';
+    const eta = $('etaTxt');
+    if (b.trend === 'rising' && b.eta_crit_s != null) {
+      eta.hidden = false;
+      eta.className = 'eta ' + (b.eta_crit_s <= 30 ? 'crit' : 'up');
+      eta.textContent = `Critical in ~${Math.round(b.eta_crit_s)}s if trend holds`;
+    } else if (b.trend === 'rising') {
+      eta.hidden = false; eta.className = 'eta up'; eta.textContent = 'Risk rising';
+    } else if (b.trend === 'easing') {
+      eta.hidden = false; eta.className = 'eta down'; eta.textContent = 'Easing';
+    } else eta.hidden = true;
+    lastSlope = b.slope || 0;
     tile.classList.toggle('critical', lvl === 'red');
     const ds = Object.values(s.dossiers || {});
     $('peopleCount').textContent = ds.length;
@@ -395,12 +433,17 @@ async function tick(soft) {
       + `<div><div class="cwho">${c.name}</div><div class="cmeta"><b>${c.sim}</b> similarity | ${new Date(c.time * 1000).toLocaleTimeString()}</div></div></div>`).join('')
       || '<div class="empty">No captures yet. Face matches land here.</div>';
     $('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
-      const sev = z.count >= 10 ? 'crit' : z.count >= 5 ? 'watch' : 'open';
-      const sevTxt = z.count >= 10 ? 'Critical' : z.count >= 5 ? 'Busy' : 'Calm';
-      const dw = Object.values(z.dwell_s || {});
-      const pct = Math.min(100, z.count * 10);
+      const zr = (b.zone_risk || {})[n];
+      const sev = zr && zr.sev !== 'green' ? (zr.sev === 'red' ? 'crit' : 'watch')
+        : (z.count >= 10 ? 'crit' : z.count >= 5 ? 'watch' : 'open');
+      const sevTxt = zr && zr.sev === 'red' ? 'Jam' : zr && zr.sev === 'yellow' ? 'Watch'
+        : (z.count >= 10 ? 'Critical' : z.count >= 5 ? 'Busy' : 'Calm');
+      const flow = zr ? (zr.still >= 0.7 ? 'stopped' : zr.still >= 0.45 ? 'slow' : 'moving') : '—';
+      const dens = zr ? `${zr.density}/m2` : '—';
+      const med = zr ? `${zr.dwell_med}s` : `${(Object.values(z.dwell_s || {})[0] || 0).toFixed(0)}s`;
+      const pct = zr ? Math.min(100, zr.bn / Math.max(0.6, CRIT * 1.5) * 100) : Math.min(100, z.count * 10);
       return `<div class="lrow"><div class="zone-top"><span class="zname">${n}</span><span class="zcount">${z.count}</span></div>`
-        + `<div class="zone-sub">Longest stay ${dw.length ? Math.max(...dw).toFixed(0) : 0}s <span class="chip ${sev}"><span class="dot" aria-hidden="true"></span>${sevTxt}</span></div>`
+        + `<div class="zone-sub">${dens} · flow ${flow} · median stay ${med} <span class="chip ${sev}"><span class="dot" aria-hidden="true"></span>${sevTxt}</span></div>`
         + `<div class="meter" aria-hidden="true"><div style="width:${pct}%"></div></div></div>`;
     }).join('') || `<div class="empty"><b>No zone data.</b> Start the backend and point a camera.</div>`;
     const q = ($('q').value || '').toLowerCase();

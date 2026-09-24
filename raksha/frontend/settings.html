@@ -72,8 +72,10 @@
               <dd><input type="number" id="critical_level" name="critical_level" step="0.05" min="0" max="1.5"></dd>
               <dt>Full density<span class="sub">People per m2 that counts as 1.0</span></dt>
               <dd><input type="number" id="density_full" name="density_full" step="0.5" min="1" max="12"></dd>
+              <dt>Venue size<span class="sub">Area in m2 the camera sees</span></dt>
+              <dd><input type="number" id="venue_area_m2" name="venue_area_m2" step="5" min="10" max="5000"></dd>
             </dl>
-            <div class="hint">Tighter venue: lower numbers. Open ground: higher. Applies instantly, no restart.</div>
+            <div class="hint">Tighter venue: lower numbers. Open ground: higher. Venue size feeds people-per-m2 density. Applies instantly, no restart.</div>
             <div class="scale-preview" aria-hidden="true">
               <div class="scale">
                 <div class="fill" id="prevFill"></div>
@@ -141,7 +143,7 @@ function preview() {
 async function load() {
   try {
     const c = await (await fetch('/api/config')).json();
-    for (const k of ['data_dir', 'retention_days', 'record_mode', 'warn_level', 'critical_level', 'density_full'])
+    for (const k of ['data_dir', 'retention_days', 'record_mode', 'warn_level', 'critical_level', 'density_full', 'venue_area_m2'])
       if ($(k) && c[k] !== undefined) $(k).value = c[k];
     preview();
   } catch (e) {
@@ -167,7 +169,7 @@ async function save(keys, btn) {
   btn.disabled = false;
 }
 $('saveStorage').onclick = e => save(['data_dir', 'retention_days', 'record_mode'], e.target);
-$('saveRisk').onclick = e => save(['warn_level', 'critical_level', 'density_full'], e.target);
+$('saveRisk').onclick = e => save(['warn_level', 'critical_level', 'density_full', 'venue_area_m2'], e.target);
 $('browse').onclick = async () => {
   const r = await (await fetch('/api/browse', { method: 'POST' })).json();
   if (r.path) { $('data_dir').value = r.path; msg('Folder picked. Save storage, then restart the backend.', true); }

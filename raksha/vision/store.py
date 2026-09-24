@@ -63,7 +63,8 @@ def connect(path):
             pass
     defaults = {"data_dir": "D:/Q_project/gallery", "retention_days": "7",
                 "warn_level": "0.4", "critical_level": "0.6",
-                "record_mode": "full", "density_full": "5.0"}
+                "record_mode": "full", "density_full": "5.0",
+                "venue_area_m2": "50"}
     for k, v in defaults.items():
         db.execute("INSERT OR IGNORE INTO config(key, value) VALUES(?,?)", (k, v))
     db.commit()
