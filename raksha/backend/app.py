@@ -65,11 +65,18 @@ def vision_loop(src):
     seg = SegmentWriter(VID_DIR, seconds=60)
     last_db_level = "green"
     trails, votes, dossiers = {}, deque(maxlen=3), {}
-    risk_hist, captures, pcache = deque(maxlen=60), deque(maxlen=20), {}
+    risk_hist, captures, pcache = deque(maxlen=300), deque(maxlen=20), {}
     t0, n = time.time(), 0
     fps = 0.0
+    src_is_file = isinstance(src, str) and os.path.isfile(src)
     while True:
         f = read_frame(cap, width=1280)
+        if f is None and src_is_file:
+            try:  # file ended -> loop it like a live round-the-clock feed
+                cap = open_source(src)
+                f = read_frame(cap, width=1280)
+            except Exception:
+                f = None
         if f is None:
             time.sleep(0.2)
             continue
@@ -149,7 +156,7 @@ def vision_loop(src):
         with lock:
             state.update({"jpg": buf.tobytes() if ok else None, "dets": dets, "zones": zc,
                           "brain": br, "risk_hist": list(risk_hist),
-                          "captures": list(captures),
+                          "captures": list(captures), "t": time.time(),
                           "alerts": brain.alerts[-10:], "fps": round(fps, 1),
                           "face_on": face_on, "gal_size": gal.index.ntotal,
                           "dossiers": {k: v.card() for k, v in dossiers.items()}})

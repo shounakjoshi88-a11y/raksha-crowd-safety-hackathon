@@ -4,112 +4,179 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Raksha Settings</title>
-<style>
-  :root {
-    --bg: #020617; --primary: #0F172A; --card: #0E1223; --muted: #1A1E2F;
-    --muted-fg: #94A3B8; --fg: #F8FAFC; --border: #334155; --accent: #22C55E;
-    --danger: #EF4444; --info: #38BDF8; --radius: 10px;
-    --font-ui: "Fira Sans", "Segoe UI", Calibri, Arial, sans-serif;
-    --font-data: "Fira Code", "Cascadia Mono", Consolas, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
-  .cmdbar { display: flex; align-items: center; gap: 14px; padding: 10px 24px; background: var(--primary); border-bottom: 1px solid var(--border); }
-  .cmdbar h1 { font-size: 19px; letter-spacing: 1px; }
-  .cmdbar h1 span { color: var(--accent); font-weight: 300; }
-  .cmdbar a { color: var(--info); font-size: 14px; margin-left: auto; }
-  main { max-width: 860px; margin: 0 auto; padding: 20px 24px; }
-  h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 22px 0 10px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-  label { display: block; font-size: 13px; color: var(--muted-fg); margin: 12px 0 4px; letter-spacing: .5px; }
-  label:first-child { margin-top: 0; }
-  input[type=text], input[type=number], select { width: 100%; background: var(--muted); border: 1px solid var(--border);
-    color: var(--fg); border-radius: 8px; padding: 9px 12px; font-size: 15px; font-family: var(--font-data); }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .btnrow { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-  button { background: var(--accent); color: #04120a; border: 0; border-radius: 8px; padding: 10px 18px;
-    font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-ui); }
-  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-  button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
-  .hint { font-size: 13px; color: var(--muted-fg); margin-top: 6px; }
-  #msg { position: sticky; top: 0; padding: 10px 24px; font-size: 14px; display: none; }
-  #msg.ok { display: block; background: #052e16; border-bottom: 1px solid var(--accent); }
-  #msg.err { display: block; background: #3d0a12; border-bottom: 1px solid var(--danger); }
-  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
-</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D9A441' stroke-width='2'%3E%3Cpath d='M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#141311">
+<link rel="stylesheet" href="/app.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to settings</a>
 <div id="msg" role="status"></div>
-<header class="cmdbar">
-  <h1>RAKSHA <span>Settings</span></h1>
-  <a href="/wall.html">&larr; Back to wall</a>
-</header>
-<main>
-  <h2>STORAGE (OFFLINE, THIS MACHINE ONLY)</h2>
-  <div class="card">
-    <label for="data_dir">Data folder (video, snapshots, database)</label>
-    <div style="display:flex;gap:8px">
-      <input type="text" id="data_dir" style="flex:1">
-      <button type="button" class="ghost" id="browse">Browse...</button>
-    </div>
-    <div class="hint">Native folder picker. Applies on next restart. Nothing ever uploads anywhere.</div>
-    <label for="retention_days">Auto-delete after (days)</label>
-    <input type="number" id="retention_days" min="1" max="365">
-    <label for="record_mode">Recording mode</label>
-    <select id="record_mode">
-      <option value="full">Full video (everything, more disk)</option>
-      <option value="clips">Alert clips only (risk moments, less disk)</option>
-    </select>
-    <div class="btnrow"><button type="button" id="saveStorage">Save storage</button></div>
+<div class="shell">
+  <nav class="rail" aria-label="Primary">
+    <span class="mark" aria-hidden="true"><svg class="ic"><use href="/icons.svg#i-shield"/></svg></span>
+    <a href="/wall.html" aria-label="Command wall" title="Command wall"><svg class="ic"><use href="/icons.svg#i-grid"/></svg></a>
+    <a href="/settings.html" aria-current="page" aria-label="Settings" title="Settings"><svg class="ic"><use href="/icons.svg#i-gear"/></svg></a>
+    <span class="spacer"></span>
+    <span class="healthdot" id="railHealth" title="Backend status" role="img" aria-label="Backend status"></span>
+  </nav>
+  <div class="maincol">
+    <header class="topbar">
+      <div class="crumbs">
+        <h1>Settings</h1>
+        <span class="venue">Storage, thresholds, handoff</span>
+      </div>
+      <div class="spacer"></div>
+      <nav><a href="/wall.html">Back to wall</a></nav>
+    </header>
+    <main class="settings-main" id="main">
+      <nav class="settings-nav" aria-label="Settings sections">
+        <a href="#storage"><svg class="ic"><use href="/icons.svg#i-folder"/></svg>Storage</a>
+        <a href="#thresholds"><svg class="ic"><use href="/icons.svg#i-warn"/></svg>Risk thresholds</a>
+        <a href="#export"><svg class="ic"><use href="/icons.svg#i-download"/></svg>Handoff export</a>
+        <a href="#shortcuts"><svg class="ic"><use href="/icons.svg#i-clock"/></svg>Shortcuts</a>
+        <a href="#data"><svg class="ic"><use href="/icons.svg#i-trash"/></svg>Data removal</a>
+      </nav>
+      <div class="settings-col">
+        <section class="panel" id="storage" aria-labelledby="storageTitle">
+          <div class="phead"><h2 id="storageTitle">Storage, offline on this machine</h2></div>
+          <fieldset class="field">
+            <dl class="form-grid">
+              <dt>Data folder<span class="sub">Video, snapshots, database</span></dt>
+              <dd>
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="data_dir" name="data_dir" style="flex:1" autocomplete="off">
+                  <button type="button" class="btn" id="browse">Browse…</button>
+                </div>
+                <div class="hint">Native folder picker. Applies on next restart. Nothing ever uploads anywhere.</div>
+              </dd>
+              <dt>Auto-delete after<span class="sub">Days of retention</span></dt>
+              <dd><input type="number" id="retention_days" name="retention_days" min="1" max="365"></dd>
+              <dt>Recording mode<span class="sub">Disk usage tradeoff</span></dt>
+              <dd>
+                <select id="record_mode" name="record_mode">
+                  <option value="full">Full video (everything, more disk)</option>
+                  <option value="clips">Alert clips only (risk moments, less disk)</option>
+                </select>
+              </dd>
+            </dl>
+            <div class="btnrow"><button type="button" class="btn-primary btn" id="saveStorage">Save storage</button></div>
+          </fieldset>
+        </section>
+        <section class="panel" id="thresholds" aria-labelledby="thresholdsTitle">
+          <div class="phead"><h2 id="thresholdsTitle">Risk thresholds, tuned per venue</h2></div>
+          <fieldset class="field">
+            <dl class="form-grid">
+              <dt>Yellow watch above<span class="sub">Risk score 0 to 1.5</span></dt>
+              <dd><input type="number" id="warn_level" name="warn_level" step="0.05" min="0" max="1"></dd>
+              <dt>Red critical above<span class="sub">Risk score 0 to 1.5</span></dt>
+              <dd><input type="number" id="critical_level" name="critical_level" step="0.05" min="0" max="1.5"></dd>
+              <dt>Full density<span class="sub">People per m2 that counts as 1.0</span></dt>
+              <dd><input type="number" id="density_full" name="density_full" step="0.5" min="1" max="12"></dd>
+            </dl>
+            <div class="hint">Tighter venue: lower numbers. Open ground: higher. Applies instantly, no restart.</div>
+            <div class="scale-preview" aria-hidden="true">
+              <div class="scale">
+                <div class="fill" id="prevFill"></div>
+                <div class="tick warn" id="prevWarn"><span>Warn</span></div>
+                <div class="tick crit" id="prevCrit"><span>Critical</span></div>
+              </div>
+              <div class="ends"><span>0</span><span id="prevMax">1.0</span></div>
+            </div>
+            <div class="btnrow"><button type="button" class="btn-primary btn" id="saveRisk">Save thresholds</button></div>
+          </fieldset>
+        </section>
+        <section class="panel" id="export" aria-labelledby="exportTitle">
+          <div class="phead"><h2 id="exportTitle">Handoff export</h2></div>
+          <fieldset class="field">
+            <dl class="form-grid">
+              <dt>Day to export<span class="sub">Alerts, snapshots, segments</span></dt>
+              <dd><input type="date" id="expday" name="expday"></dd>
+            </dl>
+            <div class="hint">Zip holds that day's alerts plus snapshots plus video segments, with an alerts.json index.</div>
+            <div class="btnrow"><button type="button" class="btn" id="doexport"><svg class="ic sm"><use href="/icons.svg#i-download"/></svg>Download zip</button></div>
+          </fieldset>
+        </section>
+        <section class="panel" id="shortcuts" aria-labelledby="shortcutsTitle">
+          <div class="phead"><h2 id="shortcutsTitle">Wall keyboard shortcuts</h2></div>
+          <dl class="shortcuts">
+            <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Switch the report pane between Alerts, People, Captures</dd>
+            <dt><kbd>f</kbd></dt><dd>Fullscreen the camera tile</dd>
+            <dt><kbd>h</kbd></dt><dd>Hold or resume live polling</dd>
+            <dt><kbd>/</kbd></dt><dd>Jump to people search</dd>
+            <dt><kbd>&larr;</kbd> <kbd>&rarr;</kbd></dt><dd>Move between report tabs when a tab is focused</dd>
+          </dl>
+        </section>
+        <section class="panel danger" id="data" aria-labelledby="dataTitle">
+          <div class="phead"><h2 id="dataTitle">Data removal</h2></div>
+          <div class="hint">Runs the same purge the backend runs at boot. Deleted files cannot be recovered.</div>
+          <div class="btnrow"><button type="button" class="btn btn-danger" id="purge"><svg class="ic sm"><use href="/icons.svg#i-trash"/></svg>Delete everything older than retention now</button></div>
+        </section>
+      </div>
+    </main>
   </div>
-  <h2>RISK THRESHOLDS (TUNE PER VENUE)</h2>
-  <div class="card">
-    <div class="row">
-      <div><label for="warn_level">Yellow at risk above</label><input type="number" id="warn_level" step="0.05" min="0" max="1"></div>
-      <div><label for="critical_level">Red at risk above</label><input type="number" id="critical_level" step="0.05" min="0" max="1.5"></div>
-    </div>
-    <label for="density_full">People per m2 that counts as full (1.0)</label>
-    <input type="number" id="density_full" step="0.5" min="1" max="12">
-    <div class="hint">Tighter venue: lower numbers. Open ground: higher. Applies instantly, no restart.</div>
-    <div class="btnrow"><button type="button" id="saveRisk">Save thresholds</button></div>
-  </div>
-  <h2>HANDOFF EXPORT</h2>
-  <div class="card">
-    <label for="expday">Day to export (YYYY-MM-DD)</label>
-    <input type="text" id="expday" placeholder="2026-09-24">
-    <div class="btnrow"><button type="button" id="doexport">Download zip</button></div>
-    <div class="hint">Zip holds that day's alerts plus snapshots plus video segments, with an alerts.json index.</div>
-  </div>
-  <h2>DANGER ZONE</h2>
-  <div class="card">
-    <div class="btnrow"><button type="button" class="danger" id="purge">Delete everything older than retention now</button></div>
-    <div class="hint">Runs the same purge the backend runs at boot. Deleted files cannot be recovered.</div>
-  </div>
-</main>
+</div>
 <script>
 const $ = id => document.getElementById(id);
-function msg(t, ok) { const m = $('msg'); m.textContent = t; m.className = ok ? 'ok' : 'err'; setTimeout(() => m.className = '', 4000); }
+document.querySelectorAll('svg.ic:not([aria-hidden])').forEach(s => s.setAttribute('aria-hidden', 'true'));
+function msg(t, ok) {
+  const m = $('msg');
+  m.textContent = t;
+  m.className = ok ? 'ok' : 'err';
+  clearTimeout(m._t);
+  m._t = setTimeout(() => m.className = '', 5000);
+}
+function preview() {
+  const w = parseFloat($('warn_level').value), c = parseFloat($('critical_level').value);
+  if (isNaN(w) || isNaN(c)) return;
+  const m = Math.max(1.0, c * 1.4);
+  $('prevWarn').style.left = (w / m * 100) + '%';
+  $('prevWarn').querySelector('span').textContent = w.toFixed(2);
+  $('prevCrit').style.left = (c / m * 100) + '%';
+  $('prevCrit').querySelector('span').textContent = c.toFixed(2);
+  $('prevMax').textContent = m.toFixed(1);
+  const f = $('prevFill');
+  f.style.width = Math.min(100, c / m * 100) + '%';
+  f.style.background = 'var(--watch)';
+}
 async function load() {
   try {
     const c = await (await fetch('/api/config')).json();
     for (const k of ['data_dir', 'retention_days', 'record_mode', 'warn_level', 'critical_level', 'density_full'])
       if ($(k) && c[k] !== undefined) $(k).value = c[k];
-  } catch (e) { msg('Backend unreachable. Start it with: python raksha/backend/app.py', false); }
+    preview();
+  } catch (e) {
+    msg('Backend unreachable. Start it with: python raksha/backend/app.py', false);
+    $('railHealth').classList.add('bad');
+  }
+  $('expday').value = new Date().toISOString().slice(0, 10);
 }
-async function save(keys) {
+$('warn_level').addEventListener('input', preview);
+$('critical_level').addEventListener('input', preview);
+async function save(keys, btn) {
   const body = {};
   keys.forEach(k => body[k] = $(k).value);
-  const r = await fetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  msg(r.ok ? 'Saved.' : 'Save failed.', r.ok);
+  btn.disabled = true;
+  const idle = btn.textContent;
+  btn.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    msg(r.ok ? 'Saved.' : 'Save failed.', r.ok);
+    if (r.ok) preview();
+  } catch (e) { msg('Save failed: backend unreachable.', false); }
+  btn.textContent = idle;
+  btn.disabled = false;
 }
-$('saveStorage').onclick = () => save(['data_dir', 'retention_days', 'record_mode']);
-$('saveRisk').onclick = () => save(['warn_level', 'critical_level', 'density_full']);
+$('saveStorage').onclick = e => save(['data_dir', 'retention_days', 'record_mode'], e.target);
+$('saveRisk').onclick = e => save(['warn_level', 'critical_level', 'density_full'], e.target);
 $('browse').onclick = async () => {
   const r = await (await fetch('/api/browse', { method: 'POST' })).json();
-  if (r.path) { $('data_dir').value = r.path; msg('Folder picked. Save storage, then restart backend.', true); }
+  if (r.path) { $('data_dir').value = r.path; msg('Folder picked. Save storage, then restart the backend.', true); }
   else if (r.error) msg('Picker failed: ' + r.error, false);
 };
-$('doexport').onclick = () => { window.location = '/api/export?day=' + encodeURIComponent($('expday').value); };
+$('doexport').onclick = () => {
+  if (!$('expday').value) { msg('Pick a day first.', false); return; }
+  window.location = '/api/export?day=' + encodeURIComponent($('expday').value);
+};
 $('purge').onclick = async () => {
   if (!confirm('Delete everything older than retention? Cannot be undone.')) return;
   const r = await fetch('/api/purge', { method: 'POST' });

@@ -4,284 +4,467 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Raksha Command Center</title>
-<style>
-  :root {
-    --bg: #020617; --primary: #0F172A; --secondary: #1E293B; --card: #0E1223;
-    --muted: #1A1E2F; --muted-fg: #94A3B8; --fg: #F8FAFC; --border: #334155;
-    --accent: #22C55E; --warn: #E5B800; --danger: #EF4444; --info: #38BDF8;
-    --radius: 10px; --gap: 14px;
-    --font-ui: "Fira Sans", "Segoe UI", Calibri, Arial, sans-serif;
-    --font-data: "Fira Code", "Cascadia Mono", Consolas, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
-  .cmdbar { display: flex; align-items: center; gap: 14px; padding: 10px 24px;
-    background: var(--primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
-  .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 700; letter-spacing: 1px; }
-  .brand svg { width: 26px; height: 26px; }
-  .brand span { color: var(--accent); font-weight: 300; }
-  .status-pill { display: flex; align-items: center; gap: 8px; background: var(--muted);
-    border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600; }
-  .status-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted-fg); }
-  .status-pill.ok .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-  .status-pill.warn .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
-  .status-pill.bad .dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-  .cmdbar .spacer { flex: 1; }
-  .metric { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted-fg); }
-  .metric b { color: var(--fg); font-weight: 600; }
-  .banner { display: none; align-items: center; gap: 12px; padding: 10px 24px; font-size: 15px; font-weight: 600; }
-  .banner.show { display: flex; }
-  .banner.red { background: #3d0a12; border-bottom: 2px solid var(--danger); }
-  .banner.yellow { background: #38300a; border-bottom: 2px solid var(--warn); }
-  .banner svg { width: 22px; height: 22px; flex-shrink: 0; }
-  .wrap { max-width: 1720px; margin: 0 auto; padding: var(--gap) 24px; }
-  /* KPI strip */
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
-  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 16px; }
-  .kpi .klabel { font-size: 11px; letter-spacing: 2px; color: var(--muted-fg); font-weight: 600; }
-  .kpi .kvalue { font-family: var(--font-data); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
-  .kpi .ksub { font-size: 12px; color: var(--muted-fg); }
-  /* main grid */
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--gap); }
-  .videoframe { position: relative; background: #000; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; align-self: start; }
-  .videoframe img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
-  .videoframe .live-tag { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px;
-    background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
-  .live-tag .rec { width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
-  .videoframe .legend { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 12px;
-    background: rgba(2, 6, 23, .8); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; font-size: 12px; color: var(--muted-fg); }
-  .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-  .rail h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted-fg); margin: 16px 0 8px; font-weight: 600; }
-  .rail h2:first-child { margin-top: 0; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
-  .card b { color: #cadcfc; }
-  .muted { color: var(--muted-fg); font-size: 13px; }
-  /* gauge + sparkline */
-  .gauge-top { display: flex; align-items: baseline; justify-content: space-between; }
-  .gauge-num { font-family: var(--font-data); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .gauge-level { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: 1px;
-    padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border); }
-  .gauge-level svg { width: 14px; height: 14px; }
-  .lvl-green { color: var(--accent); border-color: var(--accent); } .lvl-yellow { color: var(--warn); border-color: var(--warn); } .lvl-red { color: var(--danger); border-color: var(--danger); }
-  .bar { height: 12px; border-radius: 6px; background: var(--muted); overflow: hidden; margin-top: 10px; }
-  .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width .5s ease; }
-  .spark { display: flex; align-items: flex-end; gap: 2px; height: 36px; margin-top: 10px; }
-  .spark i { flex: 1; background: var(--info); border-radius: 1px; min-height: 2px; opacity: .85; }
-  .gauge-sub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-  .gauge-sub div { background: var(--muted); border-radius: 6px; padding: 6px 8px; text-align: center; }
-  .gauge-sub b { display: block; font-family: var(--font-data); font-size: 16px; font-variant-numeric: tabular-nums; }
-  .gauge-sub span { font-size: 11px; color: var(--muted-fg); letter-spacing: .5px; }
-  /* captures feed */
-  .captures { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-  .cap { display: flex; gap: 10px; align-items: center; background: var(--muted); border-radius: 8px; padding: 6px 8px; }
-  .cap img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #000; }
-  .cap .cwho { font-weight: 600; font-size: 14px; }
-  .cap .cmeta { font-size: 12px; color: var(--muted-fg); font-family: var(--font-data); }
-  /* zones */
-  .zone { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border-left: 4px solid var(--accent); }
-  .zone.warn { border-left-color: var(--warn); } .zone.bad { border-left-color: var(--danger); }
-  .zone .zname { font-weight: 600; }
-  .zone .zcount { font-family: var(--font-data); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; grid-row: span 2; }
-  .zone .zsub { font-size: 12px; color: var(--muted-fg); }
-  .zone .zbar { grid-column: 1 / -1; height: 6px; background: var(--muted); border-radius: 3px; overflow: hidden; }
-  .zone .zbar > div { height: 100%; background: var(--info); }
-  /* dossiers + search */
-  .search { width: 100%; background: var(--muted); border: 1px solid var(--border); color: var(--fg);
-    border-radius: 8px; padding: 8px 12px; font-size: 14px; font-family: var(--font-ui); margin-bottom: 8px; }
-  .person { display: flex; gap: 12px; align-items: center; }
-  .person img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #000; border: 1px solid var(--border); flex-shrink: 0; }
-  .person .pname { font-weight: 700; font-size: 16px; }
-  .person .pmeta { display: grid; grid-template-columns: repeat(3, auto); gap: 2px 14px; font-size: 12px; color: var(--muted-fg); margin-top: 4px; justify-content: start; }
-  .person .pmeta b { color: var(--fg); font-family: var(--font-data); font-variant-numeric: tabular-nums; }
-  .empty { border: 1px dashed var(--border); border-radius: var(--radius); padding: 14px; color: var(--muted-fg); font-size: 13px; }
-  .empty b { color: var(--fg); }
-  /* alerts */
-  .alert-item { display: flex; gap: 10px; align-items: flex-start; border-left: 4px solid var(--danger); }
-  .alert-item.yellow { border-left-color: var(--warn); }
-  .alert-item svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
-  .alert-item time { font-size: 12px; color: var(--muted-fg); font-family: var(--font-data); }
-  .conn-err { background: #3d0a12; border: 1px solid var(--danger); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; }
-  /* health row */
-  .health { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-top: var(--gap); }
-  .health .card { margin-bottom: 0; text-align: center; padding: 8px; }
-  .health b { font-family: var(--font-data); font-size: 18px; display: block; }
-  .health span { font-size: 11px; color: var(--muted-fg); letter-spacing: 1px; }
-  footer { padding: 12px 24px 20px; color: var(--muted-fg); font-size: 12px; max-width: 1720px; margin: 0 auto; }
-  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
-  @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } .kpis, .health { grid-template-columns: repeat(2, 1fr); } }
-  @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
-</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D9A441' stroke-width='2'%3E%3Cpath d='M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#141311">
+<link rel="stylesheet" href="/app.css">
 </head>
 <body>
-<header class="cmdbar">
-  <div class="brand">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
-    RAKSHA <span>Command Center</span>
-  </div>
-  <div class="status-pill ok" id="pill"><span class="dot"></span><span id="pilltxt">NOMINAL</span></div>
-  <div class="spacer"></div>
-  <div class="metric"><a href="/settings.html" style="color:var(--info)">Settings</a></div>
-  <div class="metric">FPS <b id="mFps">--</b></div>
-  <div class="metric">TRACKED <b id="mTrk">--</b></div>
-  <div class="metric">FACE <b id="mFace">--</b></div>
-  <div class="metric" id="clock">--:--:--</div>
-</header>
-<div class="banner" id="banner" role="alert">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>
-  <span id="bannertxt"></span>
-</div>
-<div class="wrap">
-  <section class="kpis" aria-label="Key numbers">
-    <div class="kpi"><div class="klabel">TRACKED NOW</div><div class="kvalue" id="kTrk">--</div><div class="ksub" id="kTrkSub">live IDs</div></div>
-    <div class="kpi"><div class="klabel">ON FILE</div><div class="kvalue" id="kFile">--</div><div class="ksub">dossiers + gallery</div></div>
-    <div class="kpi"><div class="klabel">ALERTS</div><div class="kvalue" id="kAl">--</div><div class="ksub">this session</div></div>
-    <div class="kpi"><div class="klabel">RISK NOW</div><div class="kvalue" id="kRisk">--</div><div class="ksub" id="kRiskSub">level</div></div>
-  </section>
-  <main class="layout">
-    <section class="videoframe" aria-label="Live camera wall">
-      <img src="/stream.mjpeg" alt="Live tracked camera feed">
-      <div class="live-tag"><span class="rec" style="width:9px;height:9px;border-radius:50%;background:#EF4444;display:inline-block"></span>LIVE <span id="cammeta"></span></div>
-      <div class="legend" aria-hidden="true">
-        <span><i style="background:#00E5CC"></i>track ID</span>
-        <span><i style="background:#FF3B5C"></i>trail</span>
-        <span><i style="background:#FFC800"></i>face file</span>
+<a class="skip-link" href="#main">Skip to main view</a>
+<div class="shell">
+  <nav class="rail" aria-label="Primary">
+    <span class="mark" aria-hidden="true"><svg class="ic"><use href="/icons.svg#i-shield"/></svg></span>
+    <a href="/wall.html" aria-current="page" aria-label="Command wall" title="Command wall"><svg class="ic"><use href="/icons.svg#i-grid"/></svg></a>
+    <a href="/settings.html" aria-label="Settings" title="Settings"><svg class="ic"><use href="/icons.svg#i-gear"/></svg></a>
+    <span class="spacer"></span>
+    <span class="healthdot" id="railHealth" title="Backend status" role="img" aria-label="Backend status"></span>
+  </nav>
+  <div class="maincol">
+    <header class="topbar">
+      <div class="crumbs">
+        <h1>Wall</h1>
+        <span class="venue">Gate camera</span>
+      </div>
+      <div class="status-pill ok" id="pill"><span class="dot" aria-hidden="true"></span><span id="pilltxt">Nominal</span></div>
+      <div class="spacer"></div>
+      <div class="readout">Fps <b class="mono" id="mFps">--</b></div>
+      <div class="readout">Tracked <b class="mono" id="mTrk">--</b></div>
+      <div class="readout">Face <b id="mFace">--</b></div>
+      <button type="button" class="iconbtn bordered" id="bell" aria-label="Open alerts">
+        <svg class="ic"><use href="/icons.svg#i-bell"/></svg>
+        <span class="badge" id="bellBadge" hidden>0</span>
+      </button>
+      <div class="readout mono" id="clock">--:--:--</div>
+    </header>
+    <div class="banner" id="banner" role="alert">
+      <svg class="ic" aria-hidden="true"><use href="/icons.svg#i-warn"/></svg>
+      <span id="bannertxt"></span>
+    </div>
+    <main class="wall-main" id="main">
+      <section class="panel sources-pane" aria-labelledby="zonesTitle">
+        <div class="phead"><h2 id="zonesTitle">Zones</h2><span class="tools"><span class="count" id="zoneCount">0</span></span></div>
+        <div id="zones"></div>
+      </section>
+      <div class="stack">
+        <section class="tile" id="tile" aria-label="Live camera wall">
+          <img class="feed" id="feed" src="/stream.mjpeg" alt="Live tracked camera feed">
+          <div class="tile-overlay tl">
+            <span class="vpill">Gate camera</span>
+            <span class="vpill live"><span class="dot" aria-hidden="true"></span>Live</span>
+          </div>
+          <div class="tile-overlay tr">
+            <button type="button" class="vbtn" id="snapBtn" aria-label="Save a snapshot frame" title="Save snapshot"><svg class="ic"><use href="/icons.svg#i-camera"/></svg></button>
+            <button type="button" class="vbtn" id="fsBtn" aria-label="Toggle fullscreen tile" title="Fullscreen"><svg class="ic"><use href="/icons.svg#i-expand"/></svg></button>
+          </div>
+          <div class="tile-overlay bl">
+            <span class="vpill dim" aria-hidden="true">
+              <span class="key"><i style="background:#00E5CC"></i>Track ID</span>
+              <span class="key"><i style="background:#FF3B5C"></i>Trail</span>
+              <span class="key"><i style="background:#FFC800"></i>Face file</span>
+            </span>
+          </div>
+          <div class="tile-overlay br"><span class="vpill dim mono" id="tileClock">--:--:--</span></div>
+        </section>
+        <section class="panel" aria-labelledby="riskTitle">
+          <div class="phead"><h2 id="riskTitle">Stampede risk</h2></div>
+          <div class="instrument">
+            <div class="score-block">
+              <div class="risk-score" id="risknum">--</div>
+              <span class="chip open" id="risklvl"><span class="dot" aria-hidden="true"></span><span id="risklvltxt">Calm</span></span>
+            </div>
+            <div class="scale-block">
+              <div class="scale" aria-hidden="true">
+                <div class="fill" id="riskfill"></div>
+                <div class="tick warn" id="tickWarn"><span>Warn</span></div>
+                <div class="tick crit" id="tickCrit"><span>Critical</span></div>
+              </div>
+              <div class="ends"><span>0</span><span id="scaleMax">1.0</span></div>
+            </div>
+            <div class="comp-block">
+              <div class="comp"><div class="clabel">Density /m2</div><div class="cval" id="gDen">--</div><div class="cbar"><div id="gDenBar"></div></div></div>
+              <div class="comp"><div class="clabel">Stillness</div><div class="cval" id="gStill">--</div><div class="cbar"><div id="gStillBar"></div></div></div>
+              <div class="comp"><div class="clabel">Counterflow</div><div class="cval" id="gCf">--</div><div class="cbar"><div id="gCfBar"></div></div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <section class="panel report-pane" aria-label="Reports">
+        <div class="tabs" role="tablist" aria-label="Report views">
+          <button role="tab" id="tab-alerts" aria-selected="true" aria-controls="panel-alerts">Alerts<span class="count" id="alertCount">0</span></button>
+          <button role="tab" id="tab-people" aria-selected="false" aria-controls="panel-people" tabindex="-1">People<span class="count" id="peopleCount">0</span></button>
+          <button role="tab" id="tab-captures" aria-selected="false" aria-controls="panel-captures" tabindex="-1">Captures</button>
+        </div>
+        <div role="tabpanel" id="panel-alerts" aria-labelledby="tab-alerts" tabindex="0">
+          <div class="fchips" role="group" aria-label="Filter alerts" id="alertFilters">
+            <button class="fchip" data-f="all" aria-pressed="true">All</button>
+            <button class="fchip" data-f="open" aria-pressed="false"><span class="dot"></span>Open</button>
+            <button class="fchip" data-f="red" aria-pressed="false"><span class="dot"></span>Red</button>
+            <button class="fchip" data-f="yellow" aria-pressed="false"><span class="dot"></span>Yellow</button>
+            <button class="fchip" data-f="handled" aria-pressed="false">Handled</button>
+          </div>
+          <div id="alerts" aria-live="polite"></div>
+        </div>
+        <div role="tabpanel" id="panel-people" aria-labelledby="tab-people" tabindex="0" hidden>
+          <input class="search" id="q" name="q" type="search" autocomplete="off" placeholder="Search name…  ( / )" aria-label="Search dossiers by name">
+          <div class="people-grid" id="dossiers"></div>
+        </div>
+        <div role="tabpanel" id="panel-captures" aria-labelledby="tab-captures" tabindex="0" hidden>
+          <div id="captures"></div>
+        </div>
+      </section>
+    </main>
+    <section class="timeline-wrap" aria-labelledby="tlTitle">
+      <div class="panel">
+        <div class="transport">
+          <h2 id="tlTitle">Risk timeline</h2>
+          <span class="livebadge" id="livebadge"><span class="dot" aria-hidden="true"></span><span id="livebadgetxt">Live</span></span>
+          <button type="button" class="tbtn" id="holdBtn" aria-pressed="false"><svg class="ic"><use href="/icons.svg#i-pause"/></svg><span>Hold</span></button>
+          <span class="spacer"></span>
+          <time id="tlClock" class="mono">--:--:--</time>
+        </div>
+        <div class="timeline">
+          <svg id="tlsvg" viewBox="0 0 600 128" role="img" aria-label="Stampede risk history with warning and critical bands and alert markers"></svg>
+        </div>
+        <div class="lane-toggles">
+          <label><input type="checkbox" id="laneRisk" checked>Risk line</label>
+          <label><input type="checkbox" id="laneMarks" checked>Alert markers</label>
+          <span class="key"><i style="background:#D9A441"></i><span id="warnLbl">Warn 0.40</span></span>
+          <span class="key"><i style="background:#E06A66"></i><span id="critLbl">Critical 0.60</span></span>
+        </div>
       </div>
     </section>
-    <aside class="rail">
-      <h2>STAMPEDE RISK</h2>
-      <div class="card">
-        <div class="gauge-top">
-          <span class="gauge-num" id="risknum">--</span>
-          <span class="gauge-level lvl-green" id="risklvl">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>
-            <span id="risklvltxt">GREEN</span></span>
-        </div>
-        <div class="bar"><div id="riskbar"></div></div>
-        <div class="spark" id="spark" aria-hidden="true"></div>
-        <div class="gauge-sub">
-          <div><b id="gDen">--</b><span>DENSITY /m2</span></div>
-          <div><b id="gStill">--</b><span>STILLNESS</span></div>
-          <div><b id="gCf">--</b><span>COUNTERFLOW</span></div>
-        </div>
+    <footer class="wall-footer">
+      <div class="health" aria-label="System health">
+        <span>Loop <b id="hFps">--</b> fps</span>
+        <span>Face engine <b id="hFace">--</b></span>
+        <span>Gallery <b id="hGal">--</b> IDs</span>
+        <span>Compute <b>RTX 4050</b></span>
       </div>
-      <h2>LATEST CAPTURES</h2>
-      <div class="captures" id="captures"><div class="empty">No captures yet.</div></div>
-      <h2>ZONES</h2>
-      <div id="zones"></div>
-      <h2>PEOPLE ON FILE</h2>
-      <input class="search" id="q" type="search" placeholder="Search name..." aria-label="Search dossiers by name">
-      <div id="dossiers" aria-live="polite"></div>
-      <h2>ALERTS</h2>
-      <div id="alerts" aria-live="polite"></div>
-    </aside>
-  </main>
-  <section class="health" aria-label="System health">
-    <div class="card"><b id="hFps">--</b><span>LOOP FPS</span></div>
-    <div class="card"><b id="hFace">--</b><span>FACE ENGINE</span></div>
-    <div class="card"><b id="hGal">--</b><span>GALLERY IDS</span></div>
-    <div class="card"><b id="hGpu">--</b><span>COMPUTE</span></div>
-  </section>
+      <span class="ethics">Faces stay on this machine. Snapshots auto purge after 7 days. No ID linkage. Keys: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> tabs <kbd>f</kbd> fullscreen <kbd>h</kbd> hold <kbd>/</kbd> search</span>
+    </footer>
+  </div>
 </div>
-<footer>Raksha demo build. Faces stay on this machine. Snapshots auto purge after 7 days. No ID linkage.</footer>
 <script>
 const $ = id => document.getElementById(id);
-function clock() { $('clock').textContent = new Date().toLocaleTimeString(); }
+document.querySelectorAll('svg.ic:not([aria-hidden])').forEach(s => s.setAttribute('aria-hidden', 'true'));
+function clock() {
+  const t = new Date().toLocaleTimeString();
+  $('clock').textContent = t; $('tileClock').textContent = t; $('tlClock').textContent = t;
+}
 setInterval(clock, 1000); clock();
-let fails = 0, alertsSeen = 0;
+function ago(t) {
+  const s = Math.max(0, Math.round(Date.now() / 1000 - t));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  return m + 'm ago';
+}
+
+/* Tabs with arrow-key travel */
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+function selectTab(tab) {
+  tabs.forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+    t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute('aria-controls')).hidden = !on;
+  });
+}
+tabs.forEach((t, i) => {
+  t.addEventListener('click', () => selectTab(t));
+  t.addEventListener('keydown', e => {
+    let j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % tabs.length;
+    if (e.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+    if (j !== null) { e.preventDefault(); selectTab(tabs[j]); tabs[j].focus(); }
+  });
+});
+$('bell').addEventListener('click', () => {
+  selectTab($('tab-alerts'));
+  $('tab-alerts').focus();
+  $('panel-alerts').scrollIntoView({ block: 'nearest' });
+});
+
+/* Alert filter chips, single select */
+let alertFilter = 'all';
+document.querySelectorAll('#alertFilters .fchip').forEach(c => c.addEventListener('click', () => {
+  alertFilter = c.dataset.f;
+  document.querySelectorAll('#alertFilters .fchip').forEach(x => x.setAttribute('aria-pressed', x === c ? 'true' : 'false'));
+  tick(true);
+}));
+
+/* Hold / resume polling */
+let held = false, timer = null;
+function setHeld(h) {
+  held = h;
+  $('holdBtn').setAttribute('aria-pressed', h ? 'true' : 'false');
+  $('holdBtn').querySelector('span').textContent = h ? 'Resume' : 'Hold';
+  $('holdBtn').querySelector('use').setAttribute('href', h ? '/icons.svg#i-play' : '/icons.svg#i-pause');
+  $('livebadge').classList.toggle('held', h);
+  $('livebadgetxt').textContent = h ? 'Held' : 'Live';
+}
+$('holdBtn').addEventListener('click', () => setHeld(!held));
+
+/* Snapshot the live frame */
+$('snapBtn').addEventListener('click', () => {
+  try {
+    const img = $('feed');
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth || 1280; c.height = img.naturalHeight || 720;
+    c.getContext('2d').drawImage(img, 0, 0);
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = 'raksha-frame-' + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
+    a.click();
+  } catch (e) { /* stream warming */ }
+});
+
+/* Fullscreen tile */
+const tile = $('tile'), fsBtn = $('fsBtn');
+function setFsIcon() {
+  fsBtn.querySelector('use').setAttribute('href',
+    (document.fullscreenElement || tile.classList.contains('tile-fs')) ? '/icons.svg#i-compress' : '/icons.svg#i-expand');
+}
+function toggleFs() {
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  if (tile.classList.contains('tile-fs')) { tile.classList.remove('tile-fs'); setFsIcon(); return; }
+  if (tile.requestFullscreen) tile.requestFullscreen().catch(() => { tile.classList.add('tile-fs'); setFsIcon(); });
+  else { tile.classList.add('tile-fs'); setFsIcon(); }
+}
+fsBtn.addEventListener('click', toggleFs);
+document.addEventListener('fullscreenchange', setFsIcon);
+
+/* Keyboard shortcuts */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === '1') selectTab($('tab-alerts'));
+  else if (e.key === '2') { selectTab($('tab-people')); }
+  else if (e.key === '3') selectTab($('tab-captures'));
+  else if (e.key === 'f') toggleFs();
+  else if (e.key === 'h') setHeld(!held);
+  else if (e.key === '/') { e.preventDefault(); selectTab($('tab-people')); $('q').focus(); }
+});
+
+/* Thresholds from shared config */
+let WARN = 0.4, CRIT = 0.6;
+async function loadThresholds() {
+  try {
+    const c = await (await fetch('/api/config')).json();
+    if (c.warn_level !== undefined) WARN = parseFloat(c.warn_level);
+    if (c.critical_level !== undefined) CRIT = parseFloat(c.critical_level);
+    $('warnLbl').textContent = 'Warn ' + WARN.toFixed(2);
+    $('critLbl').textContent = 'Critical ' + CRIT.toFixed(2);
+    layoutScale();
+  } catch (e) { /* backend warming, keep defaults */ }
+}
+function scaleMax() { return Math.max(1.0, CRIT * 1.4); }
+function layoutScale() {
+  const m = scaleMax();
+    $('tickWarn').style.left = (WARN / m * 100) + '%';
+    $('tickWarn').querySelector('span').textContent = WARN.toFixed(2);
+    $('tickCrit').style.left = (CRIT / m * 100) + '%';
+    $('tickCrit').querySelector('span').textContent = CRIT.toFixed(2);
+  $('scaleMax').textContent = m.toFixed(1);
+}
+loadThresholds();
+
+const showRisk = $('laneRisk'), showMarks = $('laneMarks');
+showRisk.addEventListener('change', () => tick(true));
+showMarks.addEventListener('change', () => tick(true));
+let lastHist = [], lastAlerts = [];
+
+function segColor(v) {
+  return v >= CRIT ? 'var(--crit)' : v >= WARN ? 'var(--watch)' : 'var(--chart)';
+}
+function drawTimeline() {
+  const hist = lastHist, marks = showMarks.checked ? lastAlerts : [];
+  const svg = $('tlsvg');
+  const cw = Math.max(320, Math.round(svg.clientWidth || 600));
+  svg.setAttribute('viewBox', `0 0 ${cw} 128`);
+  const W = cw, H = 128, padL = 32, padR = 12, padT = 24, padB = 20;
+  const max = scaleMax();
+  const SPAN = 300, n = hist.length;
+  const stepX = (W - padL - padR) / (SPAN - 1);
+  const X = i => (W - padR) - (n - 1 - i) * stepX;
+  const Xr = age => (W - padR) - age * stepX;
+  const Y = v => padT + (1 - Math.min(v, max) / max) * (H - padT - padB);
+  const now = Date.now() / 1000;
+  let s = `<rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${Y(WARN) - padT}" fill="none"/>`
+    + `<rect x="${padL}" y="${Y(CRIT)}" width="${W - padL - padR}" height="${Y(WARN) - Y(CRIT)}" fill="var(--watch)" opacity="0.08"/>`
+    + `<rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${Y(CRIT) - padT}" fill="var(--crit)" opacity="0.10"/>`;
+  const ylbl = (v, t) => `<text x="2" y="${(Y(v) + 3).toFixed(1)}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)">${t}</text>`;
+  s += ylbl(max, max.toFixed(1));
+  if (Math.abs(Y(CRIT) - Y(WARN)) < 14)
+    s += `<text x="2" y="${((Y(CRIT) + Y(WARN)) / 2 + 3).toFixed(1)}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)">${WARN.toFixed(2)}/${CRIT.toFixed(2)}</text>`;
+  else
+    s += ylbl(CRIT, CRIT.toFixed(2)) + ylbl(WARN, WARN.toFixed(2));
+  s += ylbl(0, '0');
+  s += `<line x1="${padL}" y1="${Y(WARN)}" x2="${W - padR}" y2="${Y(WARN)}" stroke="var(--watch)" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" opacity="0.7"/>`
+    + `<line x1="${padL}" y1="${Y(CRIT)}" x2="${W - padR}" y2="${Y(CRIT)}" stroke="var(--crit)" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" opacity="0.7"/>`;
+  const fmtAge = a => a < 90 ? `-${Math.round(a)}s` : `-${Math.floor(a / 60)}m${Math.round(a % 60) ? Math.round(a % 60) + 's' : ''}`;
+  [0, 0.25, 0.5, 0.75].forEach(f => {
+    const a = SPAN * (1 - f), x = padL + (W - padL - padR) * f;
+    s += `<text x="${x.toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--fg-dim)" font-family="var(--font-data)" text-anchor="middle">${fmtAge(a)}</text>`;
+  });
+  s += `<text x="${W - padR}" y="${H - 6}" font-size="9" fill="var(--fg-muted)" font-family="var(--font-data)" text-anchor="end">Now</text>`;
+  if (showRisk.checked && n > 1) {
+    let area = `<path d="M${X(0).toFixed(1)},${Y(hist[0]).toFixed(1)}`;
+    for (let i = 1; i < n; i++) area += ` L${X(i).toFixed(1)},${Y(hist[i]).toFixed(1)}`;
+    area += ` L${X(n - 1).toFixed(1)},${Y(0).toFixed(1)} L${X(0).toFixed(1)},${Y(0).toFixed(1)} Z" fill="var(--chart)" opacity="0.16"/>`;
+    s += area;
+    for (let i = 1; i < n; i++) {
+      const c = segColor(Math.max(hist[i - 1], hist[i]));
+      s += `<line x1="${X(i - 1).toFixed(1)}" y1="${Y(hist[i - 1]).toFixed(1)}" x2="${X(i).toFixed(1)}" y2="${Y(hist[i]).toFixed(1)}" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    }
+    s += `<circle cx="${X(n - 1).toFixed(1)}" cy="${Y(hist[n - 1]).toFixed(1)}" r="3.5" fill="${segColor(hist[n - 1])}"/>`;
+  }
+  marks.forEach(al => {
+    const age = now - al.time;
+    if (age < 0 || age > SPAN) return;
+    const x = Xr(age).toFixed(1), y = padT - 9;
+    const c = al.level === 'red' ? 'var(--crit)' : 'var(--watch)';
+    s += `<g><rect x="${x - 4}" y="${y - 4}" width="8" height="8" transform="rotate(45 ${x} ${y})" fill="${c}"/><title>${al.level} ${ago(al.time)}</title></g>`;
+  });
+  $('tlsvg').innerHTML = s;
+}
+
+function passFilter(al) {
+  const st = al.status || 'open';
+  if (alertFilter === 'all') return true;
+  if (alertFilter === 'open') return st === 'open';
+  if (alertFilter === 'handled') return st !== 'open';
+  return al.level === (alertFilter === 'red' ? 'red' : 'yellow');
+}
+
+let fails = 0, tickN = 0;
 $('q').addEventListener('input', () => tick(true));
 async function tick(soft) {
+  if (held) { if (!soft) timer = setTimeout(() => tick(false), 1000); return; }
   try {
     const s = await (await fetch('/api/state')).json();
     fails = 0;
+    $('railHealth').classList.remove('bad');
+    const stale = s.t ? (Date.now() / 1000 - s.t > 4) : false;
+    if (stale) {
+      $('pill').className = 'status-pill off';
+      $('pilltxt').textContent = 'Stalled';
+      $('railHealth').classList.add('bad');
+    }
+    if (++tickN % 30 === 0) loadThresholds();
     const b = s.brain || {};
     const lvl = b.level || 'green';
-    const pill = $('pill');
-    pill.className = 'status-pill ' + (lvl === 'red' ? 'bad' : lvl === 'yellow' ? 'warn' : 'ok');
-    $('pilltxt').textContent = lvl === 'red' ? 'SURGE RISK' : lvl === 'yellow' ? 'WATCH' : 'NOMINAL';
+    if (!stale) {
+      const pill = $('pill');
+      pill.className = 'status-pill ' + (lvl === 'red' ? 'bad' : lvl === 'yellow' ? 'warn' : 'ok');
+      $('pilltxt').textContent = lvl === 'red' ? 'Critical' : lvl === 'yellow' ? 'Watch' : 'Nominal';
+    }
     $('mFps').textContent = s.fps ?? '--';
-    $('mTrk').textContent = s.dets.length;
-    $('mFace').textContent = s.face_on ? 'ON' : 'OFF';
-    $('cammeta').textContent = `${s.dets.length} persons`;
+    $('mTrk').textContent = (s.dets || []).length;
+    $('mFace').textContent = s.face_on ? 'On' : 'Off';
     const banner = $('banner');
     if (lvl !== 'green') {
       banner.className = 'banner show ' + (lvl === 'red' ? 'red' : 'yellow');
       const zs = Object.entries(s.zones || {}).sort((a, b) => b[1].count - a[1].count)[0];
       $('bannertxt').textContent = lvl === 'red'
-        ? `RED surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people). Divert flow now.`
+        ? `Red surge risk ${b.risk} in ${zs ? zs[0] : 'zone'} (${zs ? zs[1].count : '?'} people). Divert flow now.`
         : `Yellow watch: risk ${b.risk}, density ${b.density}/m2. Keep eyes on ${zs ? zs[0] : 'zone'}.`;
     } else banner.className = 'banner';
+    tile.classList.toggle('critical', lvl === 'red');
     const ds = Object.values(s.dossiers || {});
-    $('kTrk').textContent = s.dets.length;
-    $('kTrkSub').textContent = 'live IDs on wall';
-    $('kFile').textContent = ds.length;
-    $('kFileSub') && ($('kFileSub').textContent = '');
-    $('kAl').textContent = (s.alerts || []).length;
-    $('kRisk').textContent = b.risk ?? '--';
-    $('kRisk').style.color = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
-    $('kRiskSub').textContent = lvl + ' level';
+    $('peopleCount').textContent = ds.length;
+    $('zoneCount').textContent = Object.keys(s.zones || {}).length;
+    const m = scaleMax();
     $('risknum').textContent = b.risk ?? '--';
-    $('risknum').style.color = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
+    $('risknum').style.color = lvl === 'red' ? 'var(--crit)' : lvl === 'yellow' ? 'var(--watch)' : 'var(--ok)';
     const rl = $('risklvl');
-    rl.className = 'gauge-level lvl-' + lvl;
-    $('risklvltxt').textContent = lvl.toUpperCase();
-    $('riskbar').style.width = Math.min(100, (b.risk || 0) * 100) + '%';
-    $('riskbar').style.background = lvl === 'red' ? 'var(--danger)' : lvl === 'yellow' ? 'var(--warn)' : 'var(--accent)';
-    $('spark').innerHTML = (s.risk_hist || []).map(v => {
-      const h = Math.max(6, Math.min(100, v * 100));
-      const c = v > 0.6 ? 'var(--danger)' : v > 0.4 ? 'var(--warn)' : 'var(--info)';
-      return `<i style="height:${h}%;background:${c}"></i>`;
-    }).join('');
-    $('gDen').textContent = b.density ?? '--'; $('gStill').textContent = b.stillness ?? '--'; $('gCf').textContent = b.counterflow ?? '--';
+    rl.className = 'chip ' + (lvl === 'red' ? 'crit' : lvl === 'yellow' ? 'watch' : 'ok');
+    $('risklvltxt').textContent = lvl === 'red' ? 'Critical' : lvl === 'yellow' ? 'Watch' : 'Calm';
+    const fill = $('riskfill');
+    fill.style.width = Math.min(100, (b.risk || 0) / m * 100) + '%';
+    fill.style.background = lvl === 'red' ? 'var(--crit)' : lvl === 'yellow' ? 'var(--watch)' : 'var(--ok)';
+    const comp = (id, bar, v, maxv) => {
+      $(id).textContent = v ?? '--';
+      $(bar).style.width = Math.min(100, (v || 0) / maxv * 100) + '%';
+    };
+    comp('gDen', 'gDenBar', b.density, 8);
+    comp('gStill', 'gStillBar', b.stillness, 1);
+    comp('gCf', 'gCfBar', b.counterflow, 1);
+    lastHist = s.risk_hist || [];
     $('captures').innerHTML = (s.captures || []).map(c =>
-      `<div class="cap"><img src="${c.url}" alt="Capture of ${c.name}" loading="lazy">`
-      + `<div><div class="cwho">${c.name}</div><div class="cmeta">${c.sim} sim | ${new Date(c.time * 1000).toLocaleTimeString()}</div></div></div>`).join('')
-      || '<div class="empty">No captures yet.</div>';
+      `<div class="lrow capture-row"><img src="${c.url}" alt="Capture of ${c.name}" loading="lazy">`
+      + `<div><div class="cwho">${c.name}</div><div class="cmeta"><b>${c.sim}</b> similarity | ${new Date(c.time * 1000).toLocaleTimeString()}</div></div></div>`).join('')
+      || '<div class="empty">No captures yet. Face matches land here.</div>';
     $('zones').innerHTML = Object.entries(s.zones || {}).map(([n, z]) => {
-      const cls = z.count >= 10 ? 'bad' : z.count >= 5 ? 'warn' : '';
+      const sev = z.count >= 10 ? 'crit' : z.count >= 5 ? 'watch' : 'open';
+      const sevTxt = z.count >= 10 ? 'Critical' : z.count >= 5 ? 'Busy' : 'Calm';
       const dw = Object.values(z.dwell_s || {});
       const pct = Math.min(100, z.count * 10);
-      return `<div class="card zone ${cls}"><span class="zname">${n}</span><span class="zcount">${z.count}</span>`
-        + `<span class="zsub">longest stay ${dw.length ? Math.max(...dw).toFixed(0) : 0}s</span>`
-        + `<div class="zbar"><div style="width:${pct}%"></div></div></div>`;
+      return `<div class="lrow"><div class="zone-top"><span class="zname">${n}</span><span class="zcount">${z.count}</span></div>`
+        + `<div class="zone-sub">Longest stay ${dw.length ? Math.max(...dw).toFixed(0) : 0}s <span class="chip ${sev}"><span class="dot" aria-hidden="true"></span>${sevTxt}</span></div>`
+        + `<div class="meter" aria-hidden="true"><div style="width:${pct}%"></div></div></div>`;
     }).join('') || `<div class="empty"><b>No zone data.</b> Start the backend and point a camera.</div>`;
     const q = ($('q').value || '').toLowerCase();
     const shown = ds.filter(d => (d.name || '').toLowerCase().includes(q));
     $('dossiers').innerHTML = shown.length ? shown.map(d => {
-      const img = (d.snap_urls && d.snap_urls[0]) ? `<img src="${d.snap_urls[0]}" alt="Face snapshot of ${d.name}" loading="lazy">` : '';
+      const img = (d.snap_urls && d.snap_urls[0])
+        ? `<img src="${d.snap_urls[0]}" alt="Face snapshot of ${d.name}" loading="lazy">`
+        : `<svg class="ic" aria-hidden="true"><use href="/icons.svg#i-user"/></svg>`;
       const at = d.attrs || {};
+      const sim = at.sim !== undefined ? `<span class="sim">${Math.round(at.sim * 100)}%</span>` : '';
       const ag = (at.age || at.gender) ? ` ${at.age ?? '?'}${at.gender ?? ''}` : '';
-      return `<div class="card person">${img}<div><div class="pname">${d.name}${ag}</div>`
-        + `<div class="pmeta"><span>STAY <b>${d.dwell_s}s</b></span><span>PHOTOS <b>${d.snaps}</b></span><span>PATH <b>${d.trail_pts}</b></span></div></div></div>`;
-    }).join('') : (ds.length ? `<div class="empty">No match for search.</div>`
-      : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span style="font-family:var(--font-data)">python scripts/enroll.py YourName 5</span></div>`);
-    if ((s.alerts || []).length > alertsSeen) alertsSeen = s.alerts.length;
+      return `<div class="person-card"><div class="thumb">${img}${sim}</div>`
+        + `<div class="pbody"><div class="pname">${d.name}${ag}</div>`
+        + `<div class="pmeta">Stay <b>${d.dwell_s}s</b> | Photos <b>${d.snaps}</b> | Path <b>${d.trail_pts}</b></div></div></div>`;
+    }).join('') : (ds.length ? `<div class="empty">No match for that search.</div>`
+      : `<div class="empty"><b>No files yet.</b> Enroll a face:<br><span class="mono">python scripts/enroll.py YourName 5</span></div>`);
     let dbAlerts = [];
     try { dbAlerts = (await (await fetch('/api/alerts')).json()).alerts || []; } catch (e) { /* db warming */ }
-    $('alerts').innerHTML = dbAlerts.map(al =>
-      `<div class="card alert-item ${al.level === 'yellow' ? 'yellow' : ''}">`
-      + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3L2 21h20L12 3z"/><path d="M12 10v5M12 18.5v.5"/></svg>`
-      + `<div><b>${al.level.toUpperCase()}</b> risk ${al.risk}, density ${al.density} [${al.zone || '-'}]`
-      + `<br><time>${new Date(al.time * 1000).toLocaleTimeString()}</time> <span class="muted">| ${al.status || 'open'}${al.ack_by ? ' by ' + al.ack_by : ''}</span>`
-      + `<br><button data-ack="${al.id}" data-s="acknowledged">Acknowledge</button> `
-      + `<button data-ack="${al.id}" data-s="false_alarm">False alarm</button> `
-      + `<button data-ack="${al.id}" data-s="escalated">Escalate</button></div></div>`).join('')
-      || `<div class="empty"><b>All quiet.</b> Alerts appear here the second risk turns yellow.</div>`;
+    lastAlerts = dbAlerts;
+    const openN = dbAlerts.filter(a => (a.status || 'open') === 'open').length;
+    $('alertCount').textContent = openN;
+    const bb = $('bellBadge');
+    bb.hidden = openN === 0; bb.textContent = openN;
+    const shown2 = dbAlerts.filter(passFilter);
+    $('alerts').innerHTML = shown2.map(al => {
+      const open = (al.status || 'open') === 'open';
+      const chip = al.level === 'red'
+        ? '<span class="chip crit"><span class="dot" aria-hidden="true"></span>Red</span>'
+        : '<span class="chip watch"><span class="dot" aria-hidden="true"></span>Yellow</span>';
+      const status = open ? 'Open' : `${al.status === 'false_alarm' ? 'False alarm' : al.status === 'escalated' ? 'Escalated' : 'Acknowledged'}${al.ack_by ? ' by ' + al.ack_by : ''}`;
+      return `<div class="lrow alert-row${open ? '' : ' handled'}"><div><div class="alert-ahead">${chip}`
+        + `<time>${new Date(al.time * 1000).toLocaleTimeString()}</time><span class="ago">${ago(al.time)}</span></div>`
+        + `<div class="alert-sum">Risk ${al.risk}, density ${al.density} in ${al.zone || 'unknown zone'}</div>`
+        + `<div class="alert-sub">${status}</div>`
+        + (open ? `<div class="actions"><button type="button" class="btn" data-ack="${al.id}" data-s="acknowledged">Acknowledge</button>`
+          + `<button type="button" class="btn" data-ack="${al.id}" data-s="false_alarm">False alarm</button>`
+          + `<button type="button" class="btn btn-danger" data-ack="${al.id}" data-s="escalated">Escalate</button></div>` : '')
+        + `</div></div>`;
+    }).join('') || (dbAlerts.length ? `<div class="empty">No alerts match this filter.</div>`
+      : `<div class="empty"><b>All quiet.</b> Alerts appear here the second risk turns yellow.</div>`);
     document.querySelectorAll('[data-ack]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true;
       await fetch(`/api/alerts/${btn.dataset.ack}/ack`, { method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: btn.dataset.s, by: 'operator' }) });
       tick(true);
     }));
+    drawTimeline();
     $('hFps').textContent = s.fps ?? '--';
-    $('hFace').textContent = s.face_on ? 'GPU' : 'OFF';
+    $('hFace').textContent = s.face_on ? 'GPU' : 'Off';
     $('hGal').textContent = s.gal_size ?? ds.length;
-    $('hGpu').textContent = 'RTX 4050';
   } catch (e) {
-    if (++fails === 3) $('alerts').innerHTML = `<div class="conn-err"><b>Backend unreachable.</b> Start it with:<br><span style="font-family:var(--font-data)">python raksha/backend/app.py</span></div>`;
+    if (++fails === 3) {
+      $('pill').className = 'status-pill off';
+      $('pilltxt').textContent = 'Offline';
+      $('railHealth').classList.add('bad');
+      $('alerts').innerHTML = `<div class="conn-err"><b>Backend unreachable.</b> Start it with:<br><span class="mono">python raksha/backend/app.py</span></div>`;
+    }
   }
-  if (!soft) setTimeout(() => tick(false), 1000);
+  if (!soft) timer = setTimeout(() => tick(false), 1000);
 }
+layoutScale();
 tick(false);
+window.addEventListener('resize', () => drawTimeline());
 </script>
 </body>
 </html>
