@@ -15,7 +15,13 @@ Per fixed camera, one edge node runs the CORE:
 pressure p = ρ·Var(V) + continuity accumulation → zone JSON (density, flow,
 pressure per zone) → venue fusion (multi-camera graph) → wall + actuation API
 (open overflow gate / hold entries, human confirms)`.
-Raw video never leaves the node. The SIDE track runs alongside: YOLOv8+ByteTrack
+Raw video never leaves the node: each edge box keeps a 10-minute rolling buffer
+and only a confirmed Red alert exports its clip, cryptographically signed, to the
+evidence pack. Escalation has teeth: Yellow auto-pages the zone guard with an ack
+timer; Red auto-pages command with a diversion proposal; unanswered reds climb the
+chain automatically; every red has an owner, a timer, and a log. The pilot publishes
+its false-alarm rate. Hardware envelope: one Jetson-class box (about $250, 15 watts)
+per 1 to 4 cameras, reusing existing CCTV; no cloud video. The SIDE track runs alongside: YOLOv8+ByteTrack
 tracklets active only under ~2/m² (low-density cross-check + person dossier
 inputs); above that it yields to the density core. Face stays Phase-2, opt-in,
 B2G plug-in — untouched.
