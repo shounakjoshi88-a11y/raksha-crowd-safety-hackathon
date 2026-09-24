@@ -56,6 +56,13 @@
 - [ ] Bottleneck box FTLE-lite (rule meter + zones cover demo; add only if time)
 - Acceptance: dense test frame → RED + alert entry with snapshot.
 
+## Local evidence store [x] (done 2026-09-24)
+- [x] `raksha/vision/store.py`: SQLite persons/tracks/snapshots/alerts/video_segments/audit, hash chain verify, purge rows+files
+- [x] `raksha/vision/record.py`: rotating 60s wall segments
+- [x] app.py wired: gallery migration at boot, per-frame tracks, dossier+snapshot rows, level-transition alerts, segment register, db counts in /api/state
+- [x] Live verified: 2 persons, 2 tracks, 6 snaps, 0 false alerts, chain intact. DB stays local, never pushed.
+- [ ] Track rows stay open (no end time yet); snapshot rows can duplicate across restarts (same 3 files). Cleanup if time.
+
 ## Phase 5: Harden + demo + submission [~] (in progress 2026-09-24)
 - [x] ONNX export yolov8s (42.8MB): 327ms ORT-GPU, 4779ms ORT-CPU → PyTorch CUDA stays primary
 - [x] onnxruntime-gpu installed → CUDAExecutionProvider live → face steady 61ms (was 438ms CPU)

@@ -17,6 +17,7 @@ Same idea as advanced camera systems used abroad, but built privacy first: opt i
 - Face file: enroll with webcam (`scripts/enroll.py`), live match at 61 ms per face on GPU, card pops with photo, age, stay time. Unknown faces go to one stranger file, no spam.
 - Stampede meter: fired RED (1.2 plus) on dense test input. Alerts go to the wall plus a log file for handover.
 - Snapshots: best face crops saved per person, shown inside their card on the wall.
+- Local evidence store: every person, track, snapshot, alert and video segment goes into SQLite on this machine only, nothing in the cloud. Audit log is hash chained, files auto purge after 7 days.
 - Deck: 6 slides in official template, validated. PDF ready in `deck/`.
 
 ## What is left

@@ -20,6 +20,12 @@ from raksha.vision.dossier import Dossier
 from raksha.vision.brain import CrowdBrain
 from raksha.vision.attributes import top_color, bottom_color, direction, parts_info
 from raksha.vision.overlay import draw_track, draw_person
+from raksha.vision import store
+from raksha.vision.record import SegmentWriter
+
+SNAP_DIR = "D:/Q_project/gallery/snaps"
+VID_DIR = "D:/Q_project/gallery/video"
+DB_PATH = "D:/Q_project/gallery/raksha.db"
 
 SNAP_DIR = "D:/Q_project/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
@@ -40,8 +46,18 @@ def vision_loop(src):
         face_on = gal.index.ntotal > 0
     except Exception:
         gal, face_on = Gallery(), False
+    DB = store.connect(DB_PATH)
+    store.purge(DB, days=7)
+    seen = set()
+    for _n, _m in zip(gal.names, gal.metas):
+        if _n not in seen:
+            store.upsert_person(DB, _n, _n, _m.get("age"), _m.get("gender"))
+            seen.add(_n)
+    store._audit(DB, "boot", "vision loop start")
     eng = FaceEngine() if face_on else None
     brain = CrowdBrain()
+    seg = SegmentWriter(VID_DIR, seconds=60)
+    last_db_level = "green"
     trails, votes, dossiers = {}, deque(maxlen=3), {}
     risk_hist, captures, pcache = deque(maxlen=60), deque(maxlen=20), {}
     t0, n = time.time(), 0
@@ -65,6 +81,7 @@ def vision_loop(src):
         for d in persons:
             if d["id"] is None:
                 continue
+            store.add_track(DB, f"t-{d['id']}", d["id"])
             x1, y1, x2, y2 = map(int, d["xyxy"])
             tr = trails.setdefault(d["id"], deque(maxlen=30))
             tr.append(((x1 + x2) // 2, (y1 + y2) // 2))
@@ -93,11 +110,15 @@ def vision_loop(src):
                 ds = dossiers.setdefault(gid, Dossier(gid, nm))
                 if meta:
                     ds.attrs = {"age": meta.get("age"), "gender": meta.get("gender"), "sim": round(sim, 2)}
+                    store.upsert_person(DB, gid, nm, meta.get("age"), meta.get("gender"))
+                else:
+                    store.upsert_person(DB, gid, nm)
                 x1, y1, x2, y2 = fc["bbox"]
                 snap = None
                 if len(ds.snapshots) < 3:
                     snap = os.path.join(SNAP_DIR, f"{gid}_{len(ds.snapshots)}.jpg")
                     cv2.imwrite(snap, f[y1:y2, x1:x2])
+                    store.add_snapshot(DB, gid, snap, fc.get("blur", 0.0))
                     captures.appendleft({"url": "/snaps/" + os.path.basename(snap),
                                          "name": label, "sim": round(sim, 2), "time": time.time()})
                 ds.touch(snapshot=snap)
@@ -109,6 +130,14 @@ def vision_loop(src):
             fps = n / (time.time() - t0)
         ok, buf = cv2.imencode(".jpg", f, [cv2.IMWRITE_JPEG_QUALITY, 80])
         risk_hist.append(br["risk"])
+        done_seg = seg.write(f)
+        if done_seg:
+            store.add_segment(DB, *done_seg)
+        if br["level"] != "green" and br["level"] != last_db_level:
+            top_zone = max(zc.items(), key=lambda kv: kv[1]["count"])[0] if zc else ""
+            store.add_alert(DB, br["level"], br["risk"], br["density"], top_zone)
+        if br["level"] != last_db_level:
+            last_db_level = br["level"]
         with lock:
             state.update({"jpg": buf.tobytes() if ok else None, "dets": dets, "zones": zc,
                           "brain": br, "risk_hist": list(risk_hist),
@@ -116,6 +145,9 @@ def vision_loop(src):
                           "alerts": brain.alerts[-10:], "fps": round(fps, 1),
                           "face_on": face_on, "gal_size": gal.index.ntotal,
                           "dossiers": {k: v.card() for k, v in dossiers.items()}})
+        if n % 60 == 0:
+            with lock:
+                state["db"] = store.stats(DB)
 
 
 app = FastAPI(title="Raksha Command API")
