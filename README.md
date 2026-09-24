@@ -1,131 +1,105 @@
-# Raksha Command Center: Crowd Safety (Hackathon 2026, Problem #2)
+# Raksha — Predictive Crowd Safety (Hackathon 2026, Problem #2)
 
-## What we are building
-A smart crowd safety system for large public events (concerts, festivals, stations, stadiums).
+Team Raksha · Problem Statement No. 2: *Improving Safety at Large Public Events* ·
+Team Leader: Shounak Joshi
 
-Today, control rooms watch dozens of CCTV screens by hand. People get missed, crushes get spotted too late. Raksha changes that:
+## The idea in one minute
 
-1. **Live tracking.** Every person gets a stable ID that stays with them across cameras, even in dense crowds.
-2. **Instant person file.** The moment a face is seen clearly, a card pops up: photo, clothing, where they entered, how long they stayed.
-3. **Stampede meter.** The system watches density, stillness, and opposite flows. When risk turns red, guards get an alert in under 1 second with the exact zone.
+Today, control rooms watch dozens of CCTV screens by hand. A guard only notices
+danger when a crowd has already stopped moving — but by then, crushing pressure
+is already passing body to body. Reactive watching kills.
 
-Same idea as advanced camera systems used abroad, but built privacy first: opt in enrollment, blurred stored video, auto deletion, no ID card linkage, full audit log.
+Raksha flips it: cameras measure how dense each zone is and how fast it moves,
+then warn guards **before** the crush builds, so staff can open overflow gates
+or hold entries upstream. Think weather forecast, but for crowds.
 
-## What works today (tested on our laptop, RTX 4050)
-- Live wall in browser: camera feed with ID boxes, walking trails, zone counts, stay timers. Open `http://localhost:8000/wall.html` after starting the backend. See it working in the Crowd tests section below.
-- Tracking: YOLOv8s plus ByteTrack, 15 to 30 FPS. ID holds through short blockages (tested: 60 frame blackout, same ID back).
-- Face file: enroll with webcam (`scripts/enroll.py`), live match at 61 ms per face on GPU, card pops with photo, age, stay time. Unknown faces go to one stranger file, no spam.
-- Stampede meter: fired RED (1.2 plus) on dense test input. Alerts go to the wall plus a log file for handover.
-- Snapshots: best face crops saved per person, shown inside their card on the wall.
-- Local evidence store: every person, track, snapshot, alert and video segment goes into SQLite on this machine only, nothing in the cloud. Audit log is hash chained, files auto purge after 7 days.
-- Deck: 6 slides in official template, validated. PDF ready in `deck/`.
+## How it works (two tracks, don't mix them up)
 
-## What is left
-- [ ] Team leader name on slide 1, then re export PDF and upload to portal (needs: one name)
-- [x] Dense crowd test with many people (done: Indian station plus temple plus traffic clips, see Crowd tests)
-- [ ] Long gap body matching: our face file covers cross camera identity, body only matching past 6 seconds is still open
-- [ ] Stranger grouping polish: strangers share one file today, split them if time allows
-- [ ] Demo video: record the wall during a walk through plus a face search moment
-- [ ] Optional speedups: TensorRT export, smaller input size, ONNX runtime tuning (works fine without these)
+**CORE track — crowd physics (this is the main idea):**
+1. **Calibrate** — map camera pixels to real ground (a fixed gate is measured once;
+   other views use relative congestion levels).
+2. **Map density** — a density heatmap counts the crowd even when people overlap
+   (bounding boxes fail there; heatmaps read the texture of the crowd instead).
+3. **Track flow** — optical flow measures which way the crowd mass is moving and
+   how fast, like watching currents in water.
+4. **Forecast pressure** — density × movement-unevenness gives crowd pressure.
+   Rising pressure plus inflow faster than outflow = warn now, not after it stops.
 
-## Crowd tests (real footage, our tracker)
-We ran the live tracker end to end on real crowd clips, including Indian railway station and temple footage. Same code as the wall, no tuning per clip.
+**SIDE track — per-person labeling (already built, kept as is):**
+Camera boxes with stable IDs, walking trails, zone counts, stay timers, plus an
+opt-in face file (photo card pops on match). It runs below ~2 people per m² and
+hands over to the density core above that. Nobody touches this track right now —
+it works, leave it alone.
 
-| Clip | Frames | Speed | People at once (peak) | Total IDs seen |
-|---|---|---|---|---|
-| Indian railway station | 4451 | 27 to 29 FPS | 9 | 37 |
-| Kumbh temple area | 1799 | 29 to 33 FPS | 17 | 543 |
-| City traffic (people plus vehicles) | 924 | 49 to 55 FPS | 23 | 226 people, 67 vehicles (cars, bikes, trucks, bus) |
+Privacy is built into the core: heatmaps cannot recognize faces, raw video never
+leaves the camera box (only small JSON numbers travel up), stored footage is
+face-blurred and auto-deleted after 7 days. No ID-card linkage, ever.
 
-Crowds plus vehicles are tracked together. Every person gets head, torso and legs boxes, each part measured for its real color with a swatch plus hex in the panel. Vehicles get blue boxes with type plus direction panels. Number plates are not read yet, that is listed below.
+## Stage right now: idea PPT, not a finished product
 
-![Live tracking demo](docs/demo/tracking_demo.gif)
+This is a Stage-1 idea submission. The 6-slide deck in `deck/` is the deliverable
+judges see. There is a working side-track demo on one laptop, but **laptop speed
+scores mean nothing at deployment scale** — so the deck never mentions them.
+Published benchmark numbers and real-deployment figures only.
 
-*Watch: live tracking on street traffic. Every box carries its file panel. Full quality video: [tracking_demo.mp4](docs/demo/tracking_demo.mp4).*
+## Where everything lives
 
-![Indian station tracking](docs/demo/india_station.jpg)
-*Indian railway station: part boxes on every person, true colors (white shirts read white, red saris read red).*
-
-![Temple tracking](docs/demo/india_temple.jpg)
-*Temple crowd: 17 tracked at once with file panels.*
-
-![Traffic tracking](docs/demo/traffic.jpg)
-*Street traffic: people plus cars, bikes and trucks tracked together.*
-
-Honest note: total IDs are higher than real people because IDs sometimes restart in very dense scenes (known ByteTrack tradeoff without appearance matching). Peak simultaneous count is the solid number. Colors read true on clear views, seated overlapping rows can still misread (documented hard case in attribute research), and weak guesses are dropped instead of shown. Face files fix identity across cameras regardless.
-
-Test clips stay on our machines only. Rerun anytime with `python scripts/test_clips.py` or `python scripts/test_india.py`.
-
-## How to run it
-```powershell
-# 1. Start the backend (needs webcam, runs the full loop)
-python D:\Q_project\raksha\backend\app.py
-# 2. Open in browser
-http://localhost:8000/wall.html
-# 3. Enroll a face (new terminal, look at camera)
-python D:\Q_project\scripts\enroll.py YourName 5
-# 4. Check speed
-python D:\Q_project\scripts\bench_track.py 0 120
-```
-First run downloads models automatically (YOLO 21 MB, face pack 159 MB). Needs NVIDIA GPU for full speed, works on CPU slower.
-
-## How we scale this (plain words)
-Today everything runs on one laptop with one camera. That is fine for the demo. Here is how the same design grows, step by step, with no rewrite:
-
-1. **More cameras, same laptop.** The tracker already keeps one state per camera. Add a second webcam or CCTV stream as a new source. Face files are shared, so a person seen on camera A is already known on camera B.
-2. **Small edge boxes per gate.** A Jetson Orin Nano (about $250, 15 watts) runs detection plus tracking for 4 cameras at the gate itself. It sends only snapshots and numbers upward, not full video. This is exactly how large systems keep network load tiny.
-3. **One GPU server per venue.** Our backend becomes the venue server: many edge boxes feed it, Faiss gallery grows from flat search to indexed search (same code, one setting change), snapshots go to shared storage, alerts fan out to guard phones.
-4. **City level.** Many venue servers feed one search cluster (Milvus vector database plus Kafka message bus). Face search across millions stays under a second. Video stays at the edge, only snapshots and alerts travel.
-5. **What changes in code at each step:** almost nothing. Same detector, same tracker, same gallery interface, same alert format. Only the deployment around it grows: more boxes, bigger gallery index, shared storage.
-
-Rough math for the pitch: one camera at 1080p needs about 2 Mbps. 8 cameras need 16 Mbps, fine on normal wifi. Snapshots are tiny (10 thousand faces a day is about 1 GB). A 2 TB drive holds months of snapshots plus a week of video.
-
-## What is inside this repo
-| File or folder | What it is | Who should read it |
+| File or folder | What it is | Who should open it |
 |---|---|---|
-| `deck/Raksha_Hackathon2026_Final.pptx` | Our 6 slide submission deck, filled in the official college template | Everyone, this is what judges see |
-| `deck/Raksha_Hackathon2026_Final.pdf` | Same deck as PDF, this is what gets uploaded to the portal | Everyone |
-| `deck/HACKATHON 2026.pptx` | The blank official template, keep as reference | Anyone editing slides |
-| `docs/Hackathon Problem Statement .md` | All 6 problem statements in text form | Everyone |
-| `docs/plan.md` | Living build tracker with checkboxes, updated as phases complete | Everyone, check this to see what is done and what is left |
-| `docs/RESEARCH.md` | Build bible: best GitHub repos to copy from, papers, datasets, settings that work, build order | Builders (vision plus backend) |
-| `docs/CHINA_DEEP_DIVE.md` | Deep notes on how large scale camera systems work behind the scenes | Builders who want full context |
-| `raksha/` | Working code: live vision, backend API, wall UI, run notes, demo script | Builders |
-| `scripts/` | Dev helpers: env check, FPS benchmark, live wall, enroll, match test, ReID test | Builders |
-| `.agents/skills/` | 8 installed AI skills: slide making, UI design, computer vision, debugging, brainstorming | Everyone, these make the AI agent much better |
+| `deck/Raksha_Hackathon2026_Simplified.pptx` | The live 6-slide submission deck | Everyone — this is what judges see |
+| `deck/Raksha_Hackathon2026_Simplified.pdf` | Same deck as PDF, for portal upload | Everyone |
+| `deck/HACKATHON 2026.pptx` | Blank official college template, reference only | Anyone editing slides |
+| `docs/RESEARCH_V2.md` | The science bible: why boxes fail, pressure math, verified papers with links | Anyone writing or defending the idea |
+| `docs/BUILD_PLAN.md` | How to actually build it later: runnable repos, milestones, risks | Builders, when build stage starts |
+| `docs/RESEARCH.md` + `docs/CHINA_DEEP_DIVE.md` | Older notes (side-track era). History only — **do not cite AURORA, STAR-Crowd, FTLE, or any "Delhi 37%" claim from these; they are unsourced** | Nobody for new work |
+| `docs/Hackathon Problem Statement .md` | All problem statements in text | Everyone |
+| `docs/plan.md` | Living checklist of what is done and what is next | Everyone |
+| `raksha/` | Side-track code: vision, backend API, wall UI | Builders only |
+| `scripts/` | Dev helpers (benchmarks, enroll, clip tests) + `scripts/ppt/` (deck patch scripts, one per fix round) | Builders only |
+| `.agents/skills/` | AI assistant skills (slides, UI, vision, debugging). Copy updates in here so the whole team stays in sync | Everyone |
 
-## Skills folder, simple explanation
-The `.agents/skills/` folder teaches our AI assistant how to do expert work:
+## Reading order for new teammates
 
-- `pptx`: making and fixing PowerPoint decks the correct way, with checks.
-- `frontend-design`, `ui-ux-pro-max`, `web-design-guidelines`: making the control room dashboard look clean and professional, not generic.
-- `computer-vision-opencv`, `senior-computer-vision`: building the camera AI (detection, tracking, face matching, speed tricks).
-- `brainstorming`: thinking through ideas before coding.
-- `systematic-debugging`: fixing bugs by finding the root cause first.
+1. This README (you are here).
+2. `deck/Raksha_Hackathon2026_Simplified.pdf` — the 6 slides, 5 minutes.
+3. `docs/RESEARCH_V2.md` sections 1–2 — why the core works, with proof.
+4. `docs/BUILD_PLAN.md` — how we build it when the time comes.
+5. Only then: side-track code in `raksha/`.
 
-Rule for the team: when anyone installs or updates a skill, copy the fresh `.agents/skills/<name>` folder into this repo and commit it, so everyone stays in sync. Restore everything on a new machine with the commands in the Skills section below.
+## Editing the deck (rules, no exceptions)
 
-## Skills: install and update commands
+- Deck edits go through Python scripts in `scripts/ppt/` (newest script is current).
+  Never hand-edit the `.pptx` in PowerPoint and re-save — it breaks validation.
+- After any edit: run the validator
+  `python .agents/skills/pptx/scripts/office/validate.py deck/Raksha_Hackathon2026_Simplified.pptx --original "deck/HACKATHON 2026.pptx"`,
+  re-export the PDF, and check every slide as an image before committing.
+- Full procedure lives in `.agents/skills/pptx/SKILL.md` — read it before any slide work.
+- Never put laptop FPS, laptop accuracy, or "tested on our machine" numbers on slides.
+- Never cite AURORA, STAR-Crowd, FTLE, or the Delhi 37% figure. Ever.
+
+## Running the side-track demo (optional, builders only)
+
 ```powershell
-npx -y skills add https://github.com/anthropics/skills --skill pptx -g -y
-npx -y skills add https://github.com/anthropics/skills --skill frontend-design -g -y
-npx -y skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill --skill ui-ux-pro-max -g -y
-npx -y skills add https://github.com/vercel-labs/agent-skills --skill web-design-guidelines -g -y
-npx -y skills add https://github.com/obra/superpowers --skill brainstorming -g -y
-npx -y skills add https://github.com/obra/superpowers --skill systematic-debugging -g -y
-npx -y skills add mindrally/skills@computer-vision-opencv -g -y
-npx -y skills add alirezarezvani/claude-skills@senior-computer-vision -g -y
+python raksha/backend/app.py        # start backend
+http://localhost:8000/wall.html     # open the wall in a browser
+python scripts/enroll.py YourName 5 # enroll a face with the webcam
 ```
+
+First run downloads models automatically. Needs an NVIDIA GPU for full speed,
+works slower on CPU. This demo is for our own testing — it is not deck material.
 
 ## How to contribute
-1. Clone the repo, make a branch with your name or task (example: `ananya/heatmap-ui`).
-2. Keep it clean: never commit scratch files, `node_modules`, thumbnails, research clones, model weights, or face galleries. `.gitignore` already blocks most of these.
-3. Never commit real face photos or gallery files. Biometric data stays on your own machine only.
-4. Skill updates go in `.agents/skills/<name>` and get committed like normal code.
-5. Open a pull request with a one line summary of what changed. Small PRs get merged fast.
+
+1. Clone, then make a branch named after you or your task (example: `ananya/deck-flow-rebuild`).
+2. Never commit: model weights, face galleries, real face photos, `node_modules`,
+   thumbnails, or scratch files. Biometric data stays on your own machine only.
+3. Skill updates go in `.agents/skills/<name>/` and get committed like normal code,
+   so every teammate's AI assistant stays in sync.
+4. Open a pull request with a one-line summary. Small PRs merge fast.
 
 ## Team
+
 - Team name: Team Raksha
-- Problem statement: No. 2, Improving Safety at Large Public Events
-- Team Leader: (adding tomorrow)
+- Problem statement: No. 2 — Improving Safety at Large Public Events
+- Team Leader: Shounak Joshi
 - Members: (add names here)
