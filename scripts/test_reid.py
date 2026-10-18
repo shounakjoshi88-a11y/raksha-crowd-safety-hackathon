@@ -1,7 +1,7 @@
 """ReID re-entry test: python scripts/test_reid.py. 30 live frames, 60 black (occlusion), 30 live. PASS if ID set after == before."""
 import sys
 import numpy as np
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 

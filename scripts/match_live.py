@@ -2,7 +2,7 @@
 import sys, argparse
 from collections import deque
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.faces import FaceEngine
 from raksha.vision.gallery import Gallery
@@ -13,7 +13,7 @@ ap.add_argument("--frames", type=int, default=0)
 ap.add_argument("--no-show", action="store_true")
 a = ap.parse_args()
 
-gal = Gallery.load("D:/Q_project/gallery/gallery")
+gal = Gallery.load("D:/Q_project/raksha/gallery/gallery")
 eng = FaceEngine()
 cap = open_source(0)
 votes, dossiers, n = deque(maxlen=3), {}, 0

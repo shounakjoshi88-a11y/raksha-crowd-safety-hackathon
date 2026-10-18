@@ -9,7 +9,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from PIL import Image
 
-SRC = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+SRC = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 shutil.copy(SRC, r"C:\Users\shoun\AppData\Local\Temp\opencode\simp-backup9.pptx")
 IMG = r"C:\Users\shoun\AppData\Local\Temp\opencode\webimg"
 

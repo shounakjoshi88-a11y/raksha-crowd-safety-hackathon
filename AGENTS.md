@@ -4,6 +4,34 @@
 > Goal: China-grade live tracking + instant person dossier, ethical & privacy-first.
 > This file is the agent's reference. Follow skills below for every task.
 
+## HARD RULE — never nuke node.exe (it breaks every MCP)
+**Never run `taskkill /F /IM node.exe`, `Get-Process node | Stop-Process`, or any kill-by-image-name
+on Node.** Most of this machine's MCP servers *are* Node programs, so it kills ~18 of them in the
+same second. They do not dependably recover, and every tool in the session dies with
+`MCP server process exited with code 1`.
+
+This is not hypothetical — it already happened. On 2026-10-18 a "clean up stray node" command ran
+`taskkill /F /IM node.exe` and took down `memory`, `fetch`, `git`, `filesystem`, `csv`, `time`,
+`obsidian`, `rea`, `godot`, `everything`, `eslint`, `puppeteer`, `browser`, `browser-bridge`,
+`semgrep`, `wikipedia`, `sequential-thinking`, `android` and `vercel` all at once. Only the
+non-Node servers survived (`arxiv`/`blender` via uvx, `perchance-image` via python, `github` .exe,
+`context7` remote).
+
+Kill strays by PID or path, never by image name:
+```powershell
+# BAD  - takes every MCP server down with it
+taskkill /F /IM node.exe
+# GOOD - only the strays
+Get-Process node | Where-Object { $_.Path -notlike "*nodejs*" } | Stop-Process -Force
+```
+
+If MCP tools vanish mid-session, reconnect them — don't restart the service and don't nuke Node again.
+Use the session's own directory:
+```powershell
+opencode api post "/api/experimental/mcp/<server>/connect?location[directory]=<session-directory>"
+opencode api get  "/api/mcp?location[directory]=<session-directory>"   # verify
+```
+
 ## Project source of truth (repo layout)
 - Problem statements: `docs/Hackathon Problem Statement .md`
 - Submission deck: `deck/Raksha_Hackathon2026_Final.pptx` (6 slides, exact college template)

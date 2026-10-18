@@ -4,8 +4,8 @@ import json
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 
-DECK = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
-BENCH = r"D:\Q_project\gallery\bench_density.json"
+DECK = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+BENCH = r"D:/Q_project/raksha/gallery\bench_density.json"
 p = Presentation(DECK)
 ok, fail = [], []
 

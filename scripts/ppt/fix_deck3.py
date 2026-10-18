@@ -4,7 +4,7 @@ Crowd-first headline, bottleneck steps, remove false 'all cameras' claim.
 import shutil
 from pptx import Presentation
 
-SRC = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+SRC = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 shutil.copy2(SRC, r"C:\Users\shoun\AppData\Local\Temp\opencode\simp-backup3.pptx")
 
 SWAPS = {

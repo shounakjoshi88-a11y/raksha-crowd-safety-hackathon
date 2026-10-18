@@ -1,6 +1,6 @@
 """Warm FPS benchmark: python scripts/bench_track.py [source] [frames]. Default webcam 0, 120 frames."""
 import sys, time
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 

@@ -1,7 +1,7 @@
 # Judge pass 2: fix overclaims, UI mismatches, PS-echo, citations
 from pptx import Presentation
 
-DECK = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+DECK = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 p = Presentation(DECK)
 ok, fail = [], []
 

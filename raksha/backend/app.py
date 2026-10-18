@@ -5,7 +5,7 @@ Open: http://localhost:8000/wall.html
 import argparse, os, sys, threading, time
 from collections import deque
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,12 +23,12 @@ from raksha.vision.overlay import draw_track, draw_person, draw_bottleneck
 from raksha.vision import store
 from raksha.vision.record import SegmentWriter
 
-SNAP_DIR = "D:/Q_project/gallery/snaps"
-VID_DIR = "D:/Q_project/gallery/video"
-DB_PATH = "D:/Q_project/gallery/raksha.db"
+SNAP_DIR = "D:/Q_project/raksha/gallery/snaps"
+VID_DIR = "D:/Q_project/raksha/gallery/video"
+DB_PATH = "D:/Q_project/raksha/gallery/raksha.db"
 DB = store.connect(DB_PATH)
 
-SNAP_DIR = "D:/Q_project/gallery/snaps"
+SNAP_DIR = "D:/Q_project/raksha/gallery/snaps"
 os.makedirs(SNAP_DIR, exist_ok=True)
 
 state = {"jpg": None, "dets": [], "zones": {}, "dossiers": {}, "captures": [],
@@ -43,7 +43,7 @@ def vision_loop(src):
     zones = ZoneCounter({"Gate": [(0, 0), (0.5, 0), (0.5, 1), (0, 1)],
                          "Stage": [(0.5, 0), (1, 0), (1, 1), (0.5, 1)]})
     try:
-        gal = Gallery.load("D:/Q_project/gallery/gallery")
+        gal = Gallery.load("D:/Q_project/raksha/gallery/gallery")
         face_on = gal.index.ntotal > 0
     except Exception:
         gal, face_on = Gallery(), False
@@ -260,9 +260,9 @@ def export(day: str):
     import datetime
     datetime.datetime.strptime(day, "%Y-%m-%d")
     cfg = store.get_config(DB)
-    out = os.path.join(cfg.get("data_dir", "D:/Q_project/gallery"), "exports", f"raksha-{day}.zip")
+    out = os.path.join(cfg.get("data_dir", "D:/Q_project/raksha/gallery"), "exports", f"raksha-{day}.zip")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    return FileResponse(store.export_range(DB, cfg.get("data_dir", "D:/Q_project/gallery"), day, out),
+    return FileResponse(store.export_range(DB, cfg.get("data_dir", "D:/Q_project/raksha/gallery"), day, out),
                         filename=f"raksha-{day}.zip")
 
 

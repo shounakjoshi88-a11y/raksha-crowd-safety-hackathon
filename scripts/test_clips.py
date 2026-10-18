@@ -1,14 +1,14 @@
 """Crowd clip test: python scripts/test_clips.py. Full pass per clip: IDs, peak, FPS + annotated frames."""
 import os, sys, time
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.tracker import PersonTracker
 
 CLIPS = ["station_concourse.webm", "shibuya_crossing.webm", "india_temple.mp4"]
-os.makedirs("D:/Q_project/assets/shots", exist_ok=True)
+os.makedirs("D:/Q_project/raksha/assets/shots", exist_ok=True)
 trk = PersonTracker()
 for name in CLIPS:
-    path = f"D:/Q_project/assets/clips/{name}"
+    path = f"D:/Q_project/raksha/assets/clips/{name}"
     cap = cv2.VideoCapture(path)
     ids, peak, n, t0, saved = set(), 0, 0, time.time(), 0
     boxes_drawn, veh_ids = 0, set()
@@ -28,7 +28,7 @@ for name in CLIPS:
                 cv2.rectangle(f, (x1, y1), (x2, y2), (0, 229, 204), 2)
                 cv2.putText(f, f"ID {d['id']}", (x1, y1 - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 229, 204), 2)
                 boxes_drawn += 1
-            cv2.imwrite(f"D:/Q_project/assets/shots/{name}_{saved}.jpg", f)
+            cv2.imwrite(f"D:/Q_project/raksha/assets/shots/{name}_{saved}.jpg", f)
             saved += 1
     cap.release()
     dt = time.time() - t0

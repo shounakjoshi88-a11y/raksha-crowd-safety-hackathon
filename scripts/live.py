@@ -3,7 +3,7 @@ Overlays IDs, trails, zone counts, dwell, FPS. Zones default to left/right halve
 import sys, time, argparse
 from collections import deque
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.tracker import PersonTracker
 from raksha.vision.zones import ZoneCounter

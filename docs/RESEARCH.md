@@ -97,7 +97,7 @@ Metrics: MAE/MSE counting, MOTA/HOTA/IDF1/IDS tracking, TAR@FAR face, FPIR/FNIR 
 # face dossier demo
 # multi-cam demo
 # density demo
-Get-ChildItem D:\Q_project\research
+Get-ChildItem D:/Q_project/learning/research
 # skills
 npx skills find "tracking reid anomaly"
 # backend (after build)

@@ -1,7 +1,7 @@
 # Judge panel pass 3: strip face from core pitch, density+forecast MVP, honest scale/occlusion, Phase-2 face as B2G
 from pptx import Presentation
 
-DECK = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+DECK = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 p = Presentation(DECK)
 ok, fail = [], []
 

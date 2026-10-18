@@ -5,7 +5,7 @@ Prints bucketed FPS + per-clip summary. Same PersonTracker pipeline as productio
 import sys, time, json
 from collections import defaultdict
 
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.tracker import PersonTracker
 
 import cv2
@@ -26,7 +26,7 @@ bin_secs = defaultdict(float)
 per_clip = {}
 
 for name in CLIPS:
-    path = f"D:/Q_project/assets/clips/{name}"
+    path = f"D:/Q_project/raksha/assets/clips/{name}"
     cap = cv2.VideoCapture(path)
     n = dt_person = 0
     peak = 0
@@ -69,5 +69,5 @@ for (lo, hi), lab in zip(BUCKETS, LABELS):
     print(f"  {lab:>7} persons: frames={f:4d} fps={fps}")
 
 json.dump({"per_clip": per_clip, "buckets": out},
-          open("D:/Q_project/gallery/bench_density.json", "w"), indent=2)
+          open("D:/Q_project/raksha/gallery/bench_density.json", "w"), indent=2)
 print("saved gallery/bench_density.json")

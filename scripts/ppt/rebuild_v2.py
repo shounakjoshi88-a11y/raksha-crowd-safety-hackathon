@@ -8,7 +8,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-SRC = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+SRC = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 shutil.copy(SRC, r"C:\Users\shoun\AppData\Local\Temp\opencode\simp-backup8.pptx")
 
 NAVY = RGBColor(0x1E, 0x27, 0x61)

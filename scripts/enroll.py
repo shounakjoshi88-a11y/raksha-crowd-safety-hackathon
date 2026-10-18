@@ -1,15 +1,15 @@
 """Enroll: python scripts/enroll.py <Name> [shots]. Captures quality faces from webcam into gallery/gallery.*"""
 import os, sys
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.ingest import open_source, read_frame
 from raksha.vision.faces import FaceEngine
 from raksha.vision.gallery import Gallery
 
 name = sys.argv[1] if len(sys.argv) > 1 else "Person01"
 shots = int(sys.argv[2]) if len(sys.argv) > 2 else 5
-os.makedirs("D:/Q_project/gallery", exist_ok=True)
-prefix = "D:/Q_project/gallery/gallery"
+os.makedirs("D:/Q_project/raksha/gallery", exist_ok=True)
+prefix = "D:/Q_project/raksha/gallery/gallery"
 
 try:
     gal = Gallery.load(prefix)

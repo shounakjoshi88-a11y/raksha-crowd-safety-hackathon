@@ -139,7 +139,7 @@ class CrowdBrain:
                 al["bottleneck"] = bottleneck["zone"]
             self.alerts.append(al)
             self.alerts = self.alerts[-50:]
-            with open("D:/Q_project/gallery/alerts.jsonl", "a") as f:
+            with open("D:/Q_project/raksha/gallery/alerts.jsonl", "a") as f:
                 f.write(json.dumps(al) + "\n")
 
         return {"density": round(density, 2), "risk": round(risk, 2), "level": level,

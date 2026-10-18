@@ -61,7 +61,7 @@ def connect(path):
             db.execute(f"ALTER TABLE alerts ADD COLUMN {col} {typ}")
         except sqlite3.OperationalError:
             pass
-    defaults = {"data_dir": "D:/Q_project/gallery", "retention_days": "7",
+    defaults = {"data_dir": "D:/Q_project/raksha/gallery", "retention_days": "7",
                 "warn_level": "0.4", "critical_level": "0.6",
                 "record_mode": "full", "density_full": "5.0",
                 "venue_area_m2": "50"}

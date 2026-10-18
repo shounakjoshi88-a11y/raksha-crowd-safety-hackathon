@@ -2,12 +2,12 @@
 import sys, time
 from collections import deque, Counter
 import cv2
-sys.path.insert(0, "D:/Q_project")
+sys.path.insert(0, "D:/Q_project/raksha")
 from raksha.vision.tracker import PersonTracker
 from raksha.vision.overlay import draw_track, draw_person
 from raksha.vision.attributes import direction, top_color, parts_info
 
-cap = cv2.VideoCapture("D:/Q_project/assets/clips/traffic.mp4")
+cap = cv2.VideoCapture("D:/Q_project/raksha/assets/clips/traffic.mp4")
 trk = PersonTracker()
 pids, vids, kinds, n, t0, peak = set(), set(), Counter(), 0, time.time(), 0
 trails = {}
@@ -37,7 +37,7 @@ while True:
             else:
                 dl, sp = direction(tr)
                 draw_track(f, d, tr, [dl + " " + str(sp) + "px/s"], compact=cmpct)
-        cv2.imwrite("D:/Q_project/assets/shots/traffic_0.jpg", f)
+        cv2.imwrite("D:/Q_project/raksha/assets/shots/traffic_0.jpg", f)
 cap.release()
 print("frames=%d fps=%.1f person_ids=%d vehicle_ids=%d peak=%d kinds=%s"
       % (n, n / (time.time() - t0), len(pids), len(vids), peak, dict(kinds)))

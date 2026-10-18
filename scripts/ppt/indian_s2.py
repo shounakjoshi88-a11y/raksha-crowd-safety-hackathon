@@ -2,7 +2,7 @@ from pptx import Presentation
 from pptx.util import Pt
 from pptx.dml.color import RGBColor
 
-SRC = r"D:\Q_project\_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
+SRC = r"D:/Q_project/raksha/_publish\deck\Raksha_Hackathon2026_Simplified.pptx"
 NAVY = RGBColor(0x1E, 0x27, 0x61)
 BODY = RGBColor(0x11, 0x11, 0x11)
 GREY = RGBColor(0x5A, 0x5A, 0x5A)
